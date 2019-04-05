@@ -1,6 +1,25 @@
 import numpy as np
 from skimage import io
 from mayavi import mlab
+from itertools import product
+
+
+def fill_border(area, value):
+    x, y = area.shape
+    column = np.full(x, value)
+    area = np.column_stack((column, area, column))
+    x, y = area.shape
+    row = np.full(y, value)
+    area = np.vstack((row, area, row))
+    return area
+
+
+def get_min(level, quantity, i, j):
+    neighbor = np.copy(level[i-1: i+2, j-1: j+2])
+    qty = quantity[i-1: i+2, j-1: j+2]
+    neighbor += qty
+    ni, nj = np.unravel_index(np.argmin(neighbor, axis=None), neighbor.shape)
+    return ni + i - 1, nj + j - 1
 
 
 class Surface:
@@ -8,6 +27,11 @@ class Surface:
         self.surface = io.imread(filename, as_gray=True)
         self.surface = self.surface * 255
         self.surface = self.surface.astype(np.uint8)
+        self.surface[self.surface > 200] -= 200
+        self.surface[self.surface > 100] -= 100
+        self.surface[self.surface > 50] -= 50
+        self.surface[self.surface > 25] -= 25
+        self.surface[self.surface > 15] -= 15
 
     def draw(self):
         x, y = self.surface.shape
@@ -25,6 +49,19 @@ class Water:
     def add(self):
         self.quantity += 1
 
+    def move(self):
+        max_val = self.level.max() + 1
+        w_level = fill_border(self.level, max_val)
+        self.quantity = fill_border(self.quantity, max_val)
+        x, y = w_level.shape
+        for i, j in product(range(1, x - 1), range(1, y - 1)):
+            if self.quantity[i, j] >= 1:
+                ni, nj = get_min(w_level, self.quantity, i, j)
+                self.quantity[i, j] -= 1
+                self.quantity[ni, nj] += 1
+        self.quantity = self.quantity[1:-1, 1:-1]
+        return self.quantity
+
     def position(self):
         xs, ys = np.nonzero(self.quantity)
         zs = self.quantity[xs, ys]
@@ -36,7 +73,8 @@ class Water:
             nhs = np.append(nhs, np.arange(h + 1, h + z + 1))
             nxs = np.append(nxs, np.full(z, x))
             nys = np.append(nys, np.full(z, y))
-
+        # minus 0.5 to visualize
+        nhs -= 0.5
         return nxs, nys, nhs
 
     def draw(self):
@@ -73,7 +111,8 @@ class Seed:
             nhs = np.append(nhs, np.arange(h + 1, h + z + 1))
             nxs = np.append(nxs, np.full(z, x))
             nys = np.append(nys, np.full(z, y))
-
+        # minus 0.5 to visualize
+        nhs -= 0.5
         return nxs, nys, nhs
 
     def draw(self):
@@ -87,6 +126,7 @@ if __name__ == '__main__':
     surface.draw()
     water = Water(surface.surface)
     water.add()
+    water.move()
     water.draw()
     seed = Seed(surface.surface, 10, 3)
     seed.draw()
