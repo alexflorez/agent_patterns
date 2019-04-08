@@ -115,20 +115,60 @@ class Seed:
         nhs -= 0.5
         return nxs, nys, nhs
 
+    def sum_neighbors(self, height_border, i, j):
+        neighbor = height_border[i - 1: i + 2, j - 1: j + 2]
+        difference = np.abs(neighbor - height_border[i, j])
+        x, y = np.where(difference <= self.height2consider)
+        return x, y
+
+    def check_grow(self, water):
+        water_border = fill_border(water.quantity, 0)
+        max_val = self.level.max() + 1
+        height_border = fill_border(water.level, max_val)
+        min2grow = 5
+        # add 1 to indices i and j because of border
+        for ix, (i, j) in enumerate(zip(self.xs + 1, self.ys + 1)):
+            xn, yn = self.sum_neighbors(height_border, i, j)
+            water_neighbor = water_border[i - 1: i + 2, j - 1: j + 2]
+            water_found = water_neighbor[xn, yn]
+            qty_water = np.sum(water_found)
+            if qty_water > min2grow:
+                self.zs[ix] += 1
+                self.adjust(water_neighbor, qty_water, xn, yn)
+                water.quantity = water_border[1:-1, 1:-1]
+
+    def adjust(self, water, qw, xs, ys):
+        for x, y in zip(xs, ys):
+            if water[x, y] > 0:
+                r = qw - water[x, y]
+                if r > 0:
+                    water[x, y] = 0
+                    qw = r
+                else:
+                    water[x, y] = -r
+                    qw = 0
+                if qw == 0:
+                    break
+        return water
+
     def draw(self):
         xs, ys, zs = self.position()
         self.points = mlab.points3d(xs, ys, zs, color=(0, 1, 0),
                                     mode='cube', scale_factor=0.9)
 
+
 if __name__ == '__main__':
     filename = "images/tinybeans.jpg"
     surface = Surface(filename)
-    surface.draw()
     water = Water(surface.surface)
-    water.add()
-    water.move()
-    water.draw()
     seed = Seed(surface.surface, 10, 3)
+    for w_ix in range(5):
+        water.add()
+        for w_jx in range(10):
+            water.move()
+        seed.check_grow(water)
+    surface.draw()
+    water.draw()
     seed.draw()
     mlab.show()
 
