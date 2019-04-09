@@ -88,11 +88,13 @@ class Seed:
         self.level = level
         size = level.size
         self.percent = size * percent // 100
+        self.seed_level = np.zeros_like(self.level)
         self.xs, self.ys, self.zs = self.sow()
         self.height2consider = height2consider
 
     def sow(self):
         size = self.level.size
+        # np.random.seed(16)
         seeds = np.random.choice(range(size), self.percent, replace=False)
         xs, ys = np.unravel_index(seeds, self.level.shape)
         xys = ((x, y) for x, y in sorted(zip(xs, ys)))
@@ -100,6 +102,7 @@ class Seed:
         xs = np.array(xs)
         ys = np.array(ys)
         zs = np.ones(xs.size, dtype='int64')
+        self.seed_level[xs, ys] = zs
         return xs, ys, zs
 
     def position(self):
@@ -122,6 +125,7 @@ class Seed:
         return x, y
 
     def check_grow(self, water):
+        seed_border = fill_border(self.seed_level, 0)
         water_border = fill_border(water.quantity, 0)
         max_val = self.level.max() + 1
         height_border = fill_border(water.level, max_val)
@@ -130,10 +134,22 @@ class Seed:
         for ix, (i, j) in enumerate(zip(self.xs + 1, self.ys + 1)):
             xn, yn = self.sum_neighbors(height_border, i, j)
             water_neighbor = water_border[i - 1: i + 2, j - 1: j + 2]
+            height_neighbor = height_border[i - 1: i + 2, j - 1: j + 2]
+            seed_neighbor = seed_border[i - 1: i + 2, j - 1: j + 2]
             water_found = water_neighbor[xn, yn]
             qty_water = np.sum(water_found)
             if qty_water > min2grow:
-                self.zs[ix] += 1
+                level_seed = height_border[i, j] + self.zs[ix]
+                # height_seed = height_neighbor
+                pi, pj = np.where(level_seed - height_neighbor == 1)
+                ix2search = [(pix, pjx) for pix, pjx in zip(pi, pj) if pix != 1 & pjx != 1]
+                if len(ix2search) == 0:
+                    self.zs[ix] += 1
+                else:
+                    nseedx, nseedy = ix2search[0]
+                    self.xs = np.append(self.xs, nseedx + i - 2)
+                    self.ys = np.append(self.ys, nseedy + j - 2)
+                    self.zs = np.append(self.zs, 1)
                 self.adjust(water_neighbor, qty_water, xn, yn)
                 water.quantity = water_border[1:-1, 1:-1]
 
