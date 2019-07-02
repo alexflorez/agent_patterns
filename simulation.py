@@ -186,6 +186,4 @@ if __name__ == '__main__':
     surface.draw()
     water.draw()
     seed.draw()
-    mlab.show()
-
 
