@@ -176,7 +176,7 @@ class Seed:
 if __name__ == '__main__':
     filename = "images/tinybeans.jpg"
     surface = Surface(filename)
-    water = Water(surface.surface)
+    water = Water(surface)
     seed = Seed(surface.surface, 10, 3)
     for w_ix in range(5):
         water.add()

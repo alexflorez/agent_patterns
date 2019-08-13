@@ -8,7 +8,7 @@ class Cell:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}<{!r}>'.format(class_name, self.state)
+        return f'{class_name}<{self.state!r}>'
 
 
 class CA:
@@ -67,9 +67,10 @@ class CA:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}<{!r}>'.format(class_name, self.board)
+        return f'{class_name}<{self.board!r}>'
 
 if __name__ == '__main__':
     w = CA(4, 5)
     print(w)
-    # w.generate()
+    w.generate()
+    print(w)
