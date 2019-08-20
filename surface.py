@@ -14,3 +14,4 @@ class Surface:
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.level!r}>'
+

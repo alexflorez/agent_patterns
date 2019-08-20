@@ -1,4 +1,7 @@
+import random
 import numpy as np
+from itertools import product
+from collections import OrderedDict
 
 class Water:
     def __init__(self, surface):
@@ -8,9 +11,9 @@ class Water:
     def add(self):
         self.height += 1
 
-    def move(self, x, y):
+    def region(self, x, y):
         max_val = self.surface.level.max() + 1
-        rows, columns = self.surface.shape
+        rows, columns = self.surface.level.shape
         ixs = []
         jys = []
         for i, j in product(range(-1, 2), range(-1, 2)):
@@ -18,16 +21,26 @@ class Water:
             jy = (y + j + columns) % columns
             ixs.append(ix)
             jys.append(jy)
-        
+        # get unique and ordered values from indexes
+        ixs_uq = list(OrderedDict.fromkeys(ixs))
+        jys_uq = list(OrderedDict.fromkeys(jys))
+        return ixs, jys, self.surface.level[np.ix_(ixs_uq, jys_uq)]
 
-        x, y = w_surface.shape
-        for i, j in product(range(1, x - 1), range(1, y - 1)):
-            if self.height[i, j] >= 1:
-                ni, nj = get_min(w_surface, self.height, i, j)
-                self.height[i, j] -= 1
-                self.height[ni, nj] += 1
-        self.height = self.height[1:-1, 1:-1]
-        return self.height
+    def minimal(self, x, y):
+        ixs, jys, region = self.region(x, y)
+        rows, columns = self.surface.level.shape
+        i = np.argmin(region, axis=None)
+        return ixs[i], jys[i]
+
+    def move(self):
+        rows, columns = self.surface.level.shape
+        height_mv = np.copy(self.height)
+        for x, y in product(range(rows), range(columns)):
+            if self.height[x, y] >= 1:
+                i, j = self.minimal(x, y)
+                height_mv[x, y] -= 1
+                height_mv[i, j] += 1
+        self.height = height_mv
 
     def position(self):
         xs, ys = np.nonzero(self.height)
