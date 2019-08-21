@@ -3,6 +3,7 @@ import numpy as np
 from itertools import product
 from collections import OrderedDict
 
+
 class Water:
     def __init__(self, surface):
         self.surface = surface
@@ -12,7 +13,6 @@ class Water:
         self.height += 1
 
     def region(self, x, y):
-        max_val = self.surface.level.max() + 1
         rows, columns = self.surface.level.shape
         ixs = []
         jys = []
@@ -28,7 +28,6 @@ class Water:
 
     def minimal(self, x, y):
         ixs, jys, region = self.region(x, y)
-        rows, columns = self.surface.level.shape
         i = np.argmin(region, axis=None)
         return ixs[i], jys[i]
 
@@ -42,18 +41,6 @@ class Water:
                 height_mv[i, j] += 1
         self.height = height_mv
 
-    def position(self):
-        xs, ys = np.nonzero(self.height)
-        zs = self.height[xs, ys]
-        height = self.surface[xs, ys]
-        nhs = np.array([])
-        nxs = np.array([])
-        nys = np.array([])
-        for x, y, z, h in zip(xs, ys, zs, height):
-            nhs = np.append(nhs, np.arange(h + 1, h + z + 1))
-            nxs = np.append(nxs, np.full(z, x))
-            nys = np.append(nys, np.full(z, y))
-        # minus 0.5 to visualize
-        nhs -= 0.5
-        return nxs, nys, nhs
-
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f'{class_name}\n<{self.height!r}>'
