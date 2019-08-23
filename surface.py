@@ -7,10 +7,8 @@ class Surface:
         self.level = io.imread(filename, as_gray=True)
         self.level = self.level * 255
         self.level = self.level.astype(int)
-        # self.water = Water(self)
-        # self.plant = Plant(self, water)
 
-    def reduce(self, percentage):
+    def reduce_to(self, percentage):
         self.level = np.array(self.level * percentage // 100,
                               dtype=int)
 

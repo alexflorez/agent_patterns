@@ -1,21 +1,23 @@
 import numpy as np
 from itertools import product
 from collections import OrderedDict
+import random
 
 
 class Plant:
-    def __init__(self, surface, water, percent):
+    def __init__(self, surface, water):
         self.surface = surface
         self.water = water
         self.seeds = np.zeros_like(surface.level)
-        self.percent = self.seeds.size * percent // 100
 
-    def seed(self):
-        choices = np.random.choice(range(self.seeds.size), self.percent, replace=False)
-        xs, ys = np.unravel_index(choices, self.seeds.level.shape)
+    def seed(self, percent):
+        np.random.seed(21)
+        percent = self.seeds.size * percent // 100
+        choices = np.random.choice(range(self.seeds.size), percent, replace=False)
+        xs, ys = np.unravel_index(choices, self.seeds.shape)
         self.seeds[xs, ys] = self.seeds[xs, ys] + 1
 
-    def region(self, x, y):
+    def region_idxs(self, x, y):
         rows, columns = self.surface.level.shape
         ixs = []
         jys = []
@@ -24,29 +26,47 @@ class Plant:
             jy = (y + j + columns) % columns
             ixs.append(ix)
             jys.append(jy)
-        # get unique and ordered values from indexes
-        ixs_uq = list(OrderedDict.fromkeys(ixs))
-        jys_uq = list(OrderedDict.fromkeys(jys))
-        return ixs, jys, self.water.height[np.ix_(ixs_uq, jys_uq)]
-
-    def check(self, x, y):
-        ixs, jys, region = self.region(x, y)
-        drops = region.sum()
-        return drops
+        return ixs, jys
     
+    def adjust_water(self, qty, xs, ys):
+        while qty > 0:
+            for x, y in zip(xs, ys):
+                if self.water.height[x, y] > 0:
+                    self.water.height[x, y] -= 1
+                    qty -= 1
+                if qty == 0:
+                    break
+
     def grow(self):
-        N = 5
+        qty_grow = 5
         rows, columns = self.surface.level.shape
-        seeds_mv = np.copy(self.seeds)
         for x, y in product(range(rows), range(columns)):
             if self.seeds[x, y] >= 1:
-                drops = self.check(x, y)
-                if drops > N:
-                    seeds_mv[i, j] += 1
-                else:
-                    seeds_mv[x, y] -= 1
-        self.seeds = seeds_mv
+                ixs, jys = self.region_idxs(x, y)
+                region = self.water.height[ixs, jys]
+                qty_water = region.sum()
+                if qty_water >= qty_grow:
+                    # Vertical and horizontal growing
+                    self.adjust_seeds(x, y)
+                    # update water height
+                    self.adjust_water(qty_grow, ixs, jys)
     
+    def adjust_seeds(self, x, y):
+        level_seed = self.surface.level[x, y] + self.seeds[x, y]
+        ixs, jys = self.region_idxs(x, y)
+        flag_horizontal = False
+        for i, j in zip(ixs, jys):
+            level_neighbor = self.surface.level[i, j] + self.seeds[i, j]
+            # one level above and one level below
+            if abs(level_seed - level_neighbor) == 1:
+                # Horizontal growing
+                self.seeds[i, j] += 1
+                flag_horizontal = True
+                break
+        if not flag_horizontal:
+        # Vertical growing.
+            self.seeds[x, y] += 1
+                
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.seeds!r}>'
