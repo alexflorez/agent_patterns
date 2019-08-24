@@ -1,7 +1,5 @@
 import numpy as np
 from itertools import product
-from collections import OrderedDict
-import random
 
 
 class Plant:
@@ -11,7 +9,6 @@ class Plant:
         self.seeds = np.zeros_like(surface.level)
 
     def seed(self, percent):
-        np.random.seed(21)
         percent = self.seeds.size * percent // 100
         choices = np.random.choice(range(self.seeds.size), percent, replace=False)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
@@ -37,8 +34,7 @@ class Plant:
                 if qty == 0:
                     break
 
-    def grow(self):
-        qty_grow = 5
+    def grow(self, qty_grow):
         rows, columns = self.surface.level.shape
         for x, y in product(range(rows), range(columns)):
             if self.seeds[x, y] >= 1:

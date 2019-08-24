@@ -52,6 +52,6 @@ def test_plant_in_surface(create_plant):
 def test_plant_grows(create_plant):
     plant = create_plant
     plant.seed(10)
-    plant.grow()
+    qty_grow = 5
+    plant.grow(qty_grow)
     assert plant.water.height.sum() < 100 
-
