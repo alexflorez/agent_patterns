@@ -1,30 +1,36 @@
+from surface import Surface
+from water import Water
+from plant import Plant
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from surface import Surface
-from water import Water
-from plant import Plant
 plt.style.use('seaborn')
 
 
 def simulation(filename, num_iters):
+    """
+    Perform a simulation of plant growth on a surface.
+    """
     surface = Surface()
     surface.from_file(filename)
-    surface.reduce_to(10)
     water = Water(surface)
     water.add()
     plant = Plant(surface, water)
-    plant.seed(5)
-    qty_grow = 5
+    plant_percentage = 10
+    plant.seed(plant_percentage)
+
+    # rules of simulation
+    QTY_GROW = 5
     
     rows, columns = surface.level.shape
     plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     for i in range(num_iters):
         water.move()
         plant_data[i] = plant.seeds
-        plant.grow(qty_grow)
-        if i % 25 == 0:
+        plant.grow(QTY_GROW)
+        if i % 10 == 0:
             water.add()
     return plant_data
 
@@ -34,14 +40,11 @@ if __name__ == '__main__':
     num_iters = 100
     plant_data = simulation(filename, num_iters)
 
-    filedata = "tinybird.npy"
-    if not os.path.isfile(filedata):
-        np.save(filedata, plant_data)
-    
-    # load data
-    # plant_data = np.load(filedata)
+    """
+    Visualize the plant growth
+    """
     num_iters, rows, columns = plant_data.shape
-    # max value of seed
+    # max value of seeds over surface
     max_val = plant_data[-1].max() + 1
     fig, ax = plt.subplots()
     plt.subplots_adjust(left=0.10, bottom=0.25)
@@ -65,4 +68,3 @@ if __name__ == '__main__':
 
     slider_steps.on_changed(update)
     plt.show()
-

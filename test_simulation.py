@@ -54,6 +54,7 @@ def test_plant_in_surface(create_plant):
 def test_plant_grows(create_plant):
     plant = create_plant
     plant.seed(10)
-    qty_grow = 5
-    plant.grow(qty_grow)
-    assert plant.water.height.sum() < 100 
+    plant.water.move()
+    QTY_GROW = 5
+    plant.grow(QTY_GROW)
+    assert np.any(plant.energy > 0.5)
