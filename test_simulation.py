@@ -9,13 +9,15 @@ import pytest
 def create_surface():
     # filename = 'images/flat.jpg'
     filename = 'images/tinybeans.jpg'
-    surface = Surface(filename)
+    surface = Surface()
+    surface.from_file(filename)
     return surface
 
 @pytest.fixture
 def create_water(create_surface):
     surface = create_surface
     water = Water(surface)
+    water.add()
     return water
 
 @pytest.fixture
@@ -34,8 +36,8 @@ def test_height_water(create_water):
 
 def test_add_water(create_water):
     water = create_water
-    water.add()
-    assert np.all(water.height == 2)
+    water.add(50)
+    assert np.any(water.height == 2)
 
 def test_move_water(create_water):
     water = create_water

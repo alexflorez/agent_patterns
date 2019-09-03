@@ -8,47 +8,49 @@ from plant import Plant
 plt.style.use('seaborn')
 
 
-if __name__ == '__main__':
-    filename = 'images/tinybird.jpg'
-    surface = Surface(filename)
+def simulation(filename, num_iters):
+    surface = Surface()
+    surface.from_file(filename)
     surface.reduce_to(10)
     water = Water(surface)
+    water.add()
     plant = Plant(surface, water)
-    plant.seed(10)
+    plant.seed(5)
     qty_grow = 5
     
-    num_iters = 100
     rows, columns = surface.level.shape
-    seed_data = np.zeros((num_iters, rows, columns))
-    # water_data = np.zeros((num_iters, rows, columns))
+    plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     for i in range(num_iters):
-        for _ in range(5):
-            water.move()
-        seed_data[i] = plant.seeds
-        # water_data[i] = water.height
+        water.move()
+        plant_data[i] = plant.seeds
         plant.grow(qty_grow)
-        if i % 10 == 0:
+        if i % 25 == 0:
             water.add()
+    return plant_data
+
+
+if __name__ == '__main__':
+    filename = 'images/tinybird.jpg'
+    num_iters = 100
+    plant_data = simulation(filename, num_iters)
 
     filedata = "tinybird.npy"
     if not os.path.isfile(filedata):
-        np.save(filedata, seed_data)
+        np.save(filedata, plant_data)
+    
     # load data
-    # seed_data = np.load(filedata)
-    # num_iters, rows, columns = seed_data.shape
-
+    # plant_data = np.load(filedata)
+    num_iters, rows, columns = plant_data.shape
     # max value of seed
-    max_val = seed_data[-1].max()
+    max_val = plant_data[-1].max() + 1
     fig, ax = plt.subplots()
     plt.subplots_adjust(left=0.10, bottom=0.25)
     val_init = num_iters // 2
     # Discrete color map with plt.cm.get_cmap()
-    # water_plt = plt.imshow(water_data[val_init], extent=[0, columns, 0, rows], 
-    #                        cmap=plt.cm.get_cmap('Blues'), interpolation='nearest')
-    seeds_plt = plt.imshow(seed_data[val_init], extent=[0, columns, 0, rows], 
-                           cmap=plt.cm.get_cmap('Greens', max_val), alpha=0.8, interpolation='nearest')
-    plt.clim(0, max_val)
-    plt.colorbar(label='Number of seeds')
+    seeds_plt = plt.imshow(plant_data[val_init], extent=[0, columns, 0, rows],
+                           cmap=plt.cm.get_cmap('viridis', max_val), alpha=0.8, interpolation='nearest')
+    plt.colorbar(ticks=range(max_val), label='Height of plants')
+    plt.clim(-0.5, max_val-0.5)
     plt.axis(aspect='image')
     plt.axis('off')
 
@@ -59,8 +61,8 @@ if __name__ == '__main__':
     def update(val):
         step = slider_steps.val
         step = int(step)
-        # water_plt.set_data(water_data[step])
-        seeds_plt.set_data(seed_data[step])
+        seeds_plt.set_data(plant_data[step])
 
     slider_steps.on_changed(update)
     plt.show()
+
