@@ -2,7 +2,6 @@ from surface import Surface
 from water import Water
 from plant import Plant
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
@@ -26,20 +25,24 @@ def simulation(filename, num_iters):
     
     rows, columns = surface.level.shape
     plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
+    water_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
+    energy_data = np.zeros((num_iters, rows, columns), dtype=np.float32)
     for i in range(num_iters):
         water.move()
-        plant_data[i] = plant.seeds
         plant.grow(QTY_GROW)
+        plant_data[i] = plant.seeds
+        water_data[i] = water.height
+        energy_data[i] = plant.energy
         if i % 10 == 0:
             water.add()
-    return plant_data
+    return plant_data, water_data, energy_data
 
 
 if __name__ == '__main__':
-    filename = 'images/tinybird.jpg'
+    filename = 'images/c001_004.png'
     num_iters = 100
-    plant_data = simulation(filename, num_iters)
-
+    # simulation data contains plant, water, and energy data
+    plant_data, water_data, energy_data = simulation(filename, num_iters)
     """
     Visualize the plant growth
     """

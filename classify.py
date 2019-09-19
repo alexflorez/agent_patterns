@@ -4,7 +4,6 @@ import os
 from collections import defaultdict
 import numpy as np
 import pandas as pd
-from skimage import io
 from sklearn.model_selection import cross_val_predict
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
@@ -42,17 +41,15 @@ def read_data(path_base):
     return class_samples
 
 
-def features(data):
+def features(data, func):
     """
     Extract a feature vector of data. 
+    data is of shape (num_iters, rows, columns)
     """
-    num_iters, rows, columns = data.shape
-    vector = []
-    for i in range(num_iters):
-        x, y = data[i].nonzero()
-        z = data[i][x, y]
-        vector.append(z.mean())
-    return vector
+    feats = {"sum": data.sum(axis=(1, 2)),
+             "max": data.max(axis=(1, 2)),
+             "mean": data.sum(axis=(1, 2)) / np.count_nonzero(data, axis=(1, 2))}
+    return feats[func].tolist()
 
 
 def classify(data):
@@ -62,7 +59,7 @@ def classify(data):
     """
     classifier = KNeighborsClassifier(n_neighbors=1)
     # kfold: not greater than the number of members in each class
-    kfold = 5
+    kfold = 10
     train_data = data[data.columns[1:-1]].values
     predicted = cross_val_predict(classifier, train_data, data['class'], cv=kfold)
     score = metrics.accuracy_score(data['class'], predicted)
@@ -73,9 +70,11 @@ def extract_features(name_class, file_sample, num_iters):
     """
     Generate data and extract feature vector.
     """
-    plant_data = simulation(file_sample, num_iters)
-    feats = features(plant_data)
-    feats_cls = feats + [name_class]
+    plant_data, water_data, energy_data = simulation(file_sample, num_iters)
+    feats_plant = features(plant_data, "mean")
+    feats_water = features(water_data, "mean")
+    feats_energy = features(energy_data, "sum")
+    feats_cls = feats_plant + feats_water + feats_energy + [name_class]
     return feats_cls
 
 
@@ -83,13 +82,17 @@ if __name__ == '__main__':
     path_base = "bases/brodatz"
     class_samples = read_data(path_base)
 
-    num_iters = 20
+    num_iters = 100
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     # Adapt data to match arguments of pool.starmap
     class_samples_iters = [(cls_, smp, num_iters) for cls_, smp in class_samples]
     result_data = pool.starmap(extract_features, class_samples_iters)
-        
-    feature_data = pd.DataFrame(result_data, columns=np.arange(num_iters + 1))
-    feature_data = feature_data.rename(columns = {num_iters: 'class'})
+    
+    # create a dataframe to hold the feature vectors
+    columns = num_iters * 3
+    feature_data = pd.DataFrame(result_data, columns=np.arange(columns + 1))
+    feature_data = feature_data.rename(columns = {columns: 'class'})
+    np.save("feature_data.npy", feature_data)
+    
     score = classify(feature_data)
     print(f"Classification score: {score:.2f}")

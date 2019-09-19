@@ -1,5 +1,5 @@
+import random
 import numpy as np
-from itertools import product
 
 
 class Plant:
@@ -22,7 +22,7 @@ class Plant:
         Seeds are added over the surface in percentages.
         """
         percent = self.seeds.size * percent // 100
-        choices = np.random.choice(range(self.seeds.size), percent, replace=False)
+        choices = random.sample(range(self.seeds.size), percent)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
         self.seeds[xs, ys] = self.seeds[xs, ys] + 1
         self.energy[xs, ys] = self.energy[xs, ys] + self.INIT_ENERGY
@@ -32,9 +32,10 @@ class Plant:
         Assess the plant growth according to
         the amount of water around a 3x3 region.
         """
+        rows, columns = self.surface.level.shape
         xseeds, yseeds = np.nonzero(self.seeds)
         for x, y in zip(xseeds, yseeds):
-            ixs, jys = self.surface.region_idxs(x, y)
+            ixs, jys = self.surface.region_idxs(x, y, rows, columns)
             region = self.water.height[ixs, jys]
             qty_water = region.sum()
             if qty_water >= qty_grow:
@@ -44,7 +45,7 @@ class Plant:
                     self.adjust_seeds(x, y)
                 # Update water height
                 self.water.adjust_water(qty_grow, ixs, jys)
-            else:   # qty_water not in qty_grow
+            else:   # qty_water less than qty_grow
                 self.energy[x, y] -= self.DELTA_ENERGY
                 if self.energy[x, y] <= self.DECREASE:
                     self.seeds[x, y] = self.seeds[x, y] - 1
@@ -53,9 +54,10 @@ class Plant:
         """
         Update plant growth in vertical and horizontal ways.
         """
+        rows, columns = self.surface.level.shape        
         level_seed = self.surface.level[x, y] + self.seeds[x, y]
         level_seed = float(level_seed)
-        ixs, jys = self.surface.region_idxs(x, y)
+        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
         flag_horizontal = False
         for i, j in zip(ixs, jys):
             level_neighbor = self.surface.level[i, j] + self.seeds[i, j]

@@ -2,6 +2,8 @@ import random
 import numpy as np
 from itertools import product
 from collections import OrderedDict
+import functools
+import array
 
 
 class Water:
@@ -18,18 +20,20 @@ class Water:
             self.height = self.height + 1
             return
         percent = self.height.size * percent // 100
-        choices = np.random.choice(range(self.height.size), percent, replace=False)
+        choices = random.sample(range(self.height.size), percent)
         xs, ys = np.unravel_index(choices, self.height.shape)
         self.height[xs, ys] = self.height[xs, ys] + 1
 
+    @functools.lru_cache(maxsize=None)
     def region_idxs_unq(self, x, y):
         """
         Find the unique values of the indexes of a 3x3 region.
         """
-        ixs, jys = self.surface.region_idxs(x, y)
+        rows, columns = self.height.shape
+        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
         # get unique and ordered values from indexes
-        ixs_uq = list(OrderedDict.fromkeys(ixs))
-        jys_uq = list(OrderedDict.fromkeys(jys))
+        ixs_uq = array.array('B', OrderedDict.fromkeys(ixs))
+        jys_uq = array.array('B', OrderedDict.fromkeys(jys))
         return ixs, jys, ixs_uq, jys_uq
 
     def minimal(self, tmp_height, x, y):
@@ -39,19 +43,26 @@ class Water:
         """
         ixs, jys, ixs_uq, jys_uq = self.region_idxs_unq(x, y)
         # region surface and region height water
-        reg_sf = self.surface.level[np.ix_(ixs_uq, jys_uq)]
-        reg_hw = tmp_height[np.ix_(ixs_uq, jys_uq)]
+        # changing np.ix_(ixs_uq, jys_uq)
+        ix = np.array(ixs_uq)[np.newaxis].T
+        jy = np.array(jys_uq)[np.newaxis]
+        reg_sf = self.surface.level[ix, jy]
+        reg_hw = tmp_height[ix, jy]
         region = reg_sf + reg_hw
         # to randomly choose among the minimal values
-        i = np.where(np.ravel(region)==region.min())[0]
-        k = random.choice(i)
+        # i = np.nonzero(region.ravel() == region.min())[0]
+        items = (region.ravel() == region.min()).nonzero()[0]
+        if len(items) > 1:
+            k = random.choice(items)
+        else:
+            k = items[0]
         return ixs[k], jys[k]
-
+        
     def move(self):
         """
         Update the position and height of the water.
         """
-        rows, columns = self.surface.level.shape
+        rows, columns = self.height.shape
         nw_height = np.copy(self.height)
         for x, y in product(range(rows), range(columns)):
             if self.height[x, y] >= 1:
