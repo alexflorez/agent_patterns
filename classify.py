@@ -73,8 +73,9 @@ def extract_features(name_class, file_sample, num_iters):
     plant_data, water_data, energy_data = simulation(file_sample, num_iters)
     feats_plant = features(plant_data, "mean")
     feats_water = features(water_data, "mean")
+    feats_mass_plant = features(plant_data, "sum")
     feats_energy = features(energy_data, "sum")
-    feats_cls = feats_plant + feats_water + feats_energy + [name_class]
+    feats_cls = feats_plant + feats_water + feats_energy + feats_mass_plant + [name_class]
     return feats_cls
 
 
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     result_data = pool.starmap(extract_features, class_samples_iters)
     
     # create a dataframe to hold the feature vectors
-    columns = num_iters * 3
+    columns = num_iters * 4
     feature_data = pd.DataFrame(result_data, columns=np.arange(columns + 1))
     feature_data = feature_data.rename(columns = {columns: 'class'})
     np.save("feature_data.npy", feature_data)

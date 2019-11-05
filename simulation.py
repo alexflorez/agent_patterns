@@ -29,10 +29,10 @@ def simulation(filename, num_iters):
     energy_data = np.zeros((num_iters, rows, columns), dtype=np.float32)
     for i in range(num_iters):
         water.move()
-        plant.grow(QTY_GROW)
         plant_data[i] = plant.seeds
         water_data[i] = water.height
         energy_data[i] = plant.energy
+        plant.grow(QTY_GROW)
         if i % 10 == 0:
             water.add()
     return plant_data, water_data, energy_data
