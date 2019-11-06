@@ -21,37 +21,56 @@ class Plant:
         Add seeds to the surface level.
         Seeds are added over the surface in percentages.
         """
-        random.seed(5)
+        #random.seed(5)
         percent = self.seeds.size * percent // 100
         choices = random.sample(range(self.seeds.size), percent)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
         self.seeds[xs, ys] += 1
         self.energy[xs, ys] += self.INIT_ENERGY
 
-    def grow(self, qty_grow):
+    def qty_water_region(self, x, y):
+        rows, columns = self.surface.level.shape
+        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
+        region = self.water.height[ixs, jys]
+        return ixs, jys, region.sum()
+    
+    def horiz_vert_grow(self, x, y):
+        self.energy[x, y] += self.DELTA_ENERGY
+        qty_growth = self.GROWTH * self.seeds[x, y]
+        if self.energy[x, y] >= qty_growth:
+            # Vertical and horizontal growth
+            self.adjust_seeds(x, y)
+
+    def grow(self, qty_water_grow):
         """
         Assess the plant growth according to
         the amount of water around a 3x3 region.
         """
-        rows, columns = self.surface.level.shape
         xseeds, yseeds = np.nonzero(self.seeds)
         for x, y in zip(xseeds, yseeds):
-            ixs, jys = self.surface.region_idxs(x, y, rows, columns)
-            region = self.water.height[ixs, jys]
-            qty_water = region.sum()
-            if qty_water >= qty_grow:
-                self.energy[x, y] += self.DELTA_ENERGY
-                qty_growth = self.GROWTH * self.seeds[x, y]
-                if self.energy[x, y] >= qty_growth:
-                    # Vertical and horizontal growth
-                    self.adjust_seeds(x, y)
+            ixs, jys, qty_water = self.qty_water_region(x, y)
+            if qty_water >= qty_water_grow:
+                self.horiz_vert_grow(x, y)
                 # Update water height
-                self.water.adjust_water(qty_grow, ixs, jys)
-            else:   # qty_water less than qty_grow
-                self.energy[x, y] -= self.DELTA_ENERGY
-                qty_decrease = self.INIT_ENERGY * self.seeds[x, y]
-                if self.energy[x, y] < qty_decrease:
-                    self.seeds[x, y] -= 1
+                self.water.adjust_water(qty_water_grow, ixs, jys)
+            else:   
+                # check if neigbors have qty_water_grow
+                neigh = set()
+                neigh = self.neighbors(neigh, x, y)
+                neigh = neigh - {(x, y)}
+                
+                for i, j in neigh:
+                    nxs, nys, qty_water = self.qty_water_region(i, j)
+                    if qty_water >= qty_water_grow:
+                        self.horiz_vert_grow(x, y)
+                        # Update water height
+                        self.water.adjust_water(qty_water_grow, nxs, nys)
+                        break
+                else:                
+                    self.energy[x, y] -= self.DELTA_ENERGY
+                    qty_decrease = self.INIT_ENERGY * self.seeds[x, y]
+                    if self.energy[x, y] < qty_decrease:
+                        self.seeds[x, y] -= 1
     
     def adjust_seeds(self, x, y):
         """
@@ -86,7 +105,20 @@ class Plant:
             # add INIT_ENERGY, subtract DELTA_ENERGY
             self.energy[x, y] += self.INIT_ENERGY
             self.energy[x, y] -= self.DELTA_ENERGY
-    
+
+    def neighbors(self, neigh, x, y):
+        if (x, y) in neigh:
+            return set()
+        rows, columns = self.seeds.shape
+        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
+                
+        pts = np.nonzero(self.seeds[ixs, jys])[0]
+
+        neigh = neigh | {(x, y)}
+        for p in pts:
+            neigh = neigh | self.neighbors(neigh, ixs[p], jys[p])
+        return neigh
+
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.seeds!r}>'
