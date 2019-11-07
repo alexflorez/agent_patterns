@@ -21,26 +21,29 @@ def simulation(filename, num_iters):
     plant.seed(plant_percentage)
 
     # rules of simulation
-    QTY_GROW = 5
+    water_grow = 5
+    times_add_water = 10
+    times_water_moves = 2
     
     rows, columns = surface.level.shape
     plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     water_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     energy_data = np.zeros((num_iters, rows, columns), dtype=np.float32)
     for i in range(num_iters):
-        water.move()
+        for _ in range(times_water_moves):
+            water.move()
         plant_data[i] = plant.seeds
         water_data[i] = water.height
         energy_data[i] = plant.energy
-        plant.grow(QTY_GROW)
-        if i % 10 == 0:
+        plant.grow(water_grow)
+        if i % times_add_water == 0:
             water.add()
     return plant_data, water_data, energy_data
 
 
 if __name__ == '__main__':
     filename = 'images/c001_004.png'
-    num_iters = 100
+    num_iters = 20
     # simulation data contains plant, water, and energy data
     plant_data, water_data, energy_data = simulation(filename, num_iters)
     """

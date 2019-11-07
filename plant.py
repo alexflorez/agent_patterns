@@ -4,7 +4,7 @@ import numpy as np
 
 class Plant:
     # points pixel above and points pixel below to grow
-    POINTS = 3      # difference (level + seed) - neighbor(level + seed)
+    POINTS = 10      # difference (level + seed) - neighbor(level + seed)
     INIT_ENERGY = 0.5
     DELTA_ENERGY = 0.1
     DECREASE = 0.0
@@ -55,9 +55,7 @@ class Plant:
                 self.water.adjust_water(qty_water_grow, ixs, jys)
             else:   
                 # check if neigbors have qty_water_grow
-                neigh = set()
-                neigh = self.neighbors(neigh, x, y)
-                neigh = neigh - {(x, y)}
+                neigh = self.neighbors(x, y)
                 
                 for i, j in neigh:
                     nxs, nys, qty_water = self.qty_water_region(i, j)
@@ -106,19 +104,50 @@ class Plant:
             self.energy[x, y] += self.INIT_ENERGY
             self.energy[x, y] -= self.DELTA_ENERGY
 
-    def neighbors(self, neigh, x, y):
-        if (x, y) in neigh:
-            return set()
+    def neighbors(self, x, y):
         rows, columns = self.seeds.shape
-        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
-                
-        pts = np.nonzero(self.seeds[ixs, jys])[0]
-
-        neigh = neigh | {(x, y)}
-        for p in pts:
-            neigh = neigh | self.neighbors(neigh, ixs[p], jys[p])
-        return neigh
+        node = (x, y)
+        visited = [node]
+        stack = [node]
+        while stack:
+            node = stack[-1]
+            if node not in visited:
+                visited.append(node)
+            remove_from_stack = True
+            i, j = node
+            ixs, jys = self.surface.region_idxs(i, j, rows, columns)
+            pts = np.nonzero(self.seeds[ixs, jys])[0]
+            for p in pts:
+                new_node = (ixs[p], jys[p])
+                if new_node not in visited:
+                    stack.append(new_node)
+                    remove_from_stack = False
+                    break
+            if remove_from_stack:
+                stack.pop()
+        return visited
 
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.seeds!r}>'
+
+if __name__ == '__main__':
+    from surface import Surface
+    from water import Water
+    surface = Surface()
+    filename = 'images/c001_004.png'
+    surface.from_file(filename)
+    water = Water(surface)
+    water.add()
+    plant = Plant(surface, water)
+    plant_percentage = 50
+    plant.seed(plant_percentage)
+    xs, ys = np.nonzero(plant.seeds)
+    visited = []
+    for x, y in zip(xs, ys):
+        if (x, y) in visited:
+            continue
+        n = plant.neighbors(x, y)
+        visited.extend(n)
+        # print(n)
+    print("Elements", xs.size)
