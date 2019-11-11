@@ -36,7 +36,7 @@ class Surface:
     @functools.lru_cache(maxsize=None)
     def region_idxs(self, x, y, rows, columns):
         """
-        Extract a 3x3 region from the surface level 
+        Extract a n x n region from the surface level 
         according to the current x and y positions.
         Return the indexes of the region.
         """

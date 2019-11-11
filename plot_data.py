@@ -37,25 +37,17 @@ def plot_features(ax, data, cls_, indexes, ylabel, n=5):
     t_cls = cls_[indexes[2]]
     fo_cls = cls_[indexes[3]]
 
-    first_plt = []
-    for d in f_data:
-        f_line, = ax.plot(d, color='blue')
-        first_plt.append(f_line)
+    def plot_lines(plotdata, linecolor):
+        lines = []
+        for d in plotdata:
+            f_line, = ax.plot(d, color=linecolor)
+            lines.append(f_line)
+        return lines
 
-    second_plt = []
-    for d in s_data:
-        s_line, = ax.plot(d, color='green')
-        second_plt.append(s_line)
-
-    third_plt = []
-    for d in t_data:
-        t_line, = ax.plot(d, color='red')
-        third_plt.append(t_line)
-
-    fourth_plt = []
-    for d in fo_data:
-        fo_line, = ax.plot(d, color='orange')
-        fourth_plt.append(fo_line)
+    first_plt = plot_lines(f_data, 'blue')
+    second_plt = plot_lines(s_data, 'green')
+    third_plt = plot_lines(t_data, 'red')
+    fourth_plt = plot_lines(fo_data, 'orange')
 
     ax.set_title(ylabel)
 

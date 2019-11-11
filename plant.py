@@ -5,10 +5,10 @@ import numpy as np
 class Plant:
     # points pixel above and points pixel below to grow
     POINTS = 10      # difference (level + seed) - neighbor(level + seed)
-    INIT_ENERGY = 0.5
-    DELTA_ENERGY = 0.1
-    DECREASE = 0.0
-    GROWTH = 1.0
+    INIT_ENERGY = 5
+    DELTA_ENERGY = 1
+    DECREASE = 0
+    GROWTH = 10
 
     def __init__(self, surface, water):
         self.surface = surface
@@ -44,7 +44,7 @@ class Plant:
     def grow(self, qty_water_grow):
         """
         Assess the plant growth according to
-        the amount of water around a 3x3 region.
+        the amount of water around a n x n region.
         """
         xseeds, yseeds = np.nonzero(self.seeds)
         for x, y in zip(xseeds, yseeds):
@@ -66,8 +66,8 @@ class Plant:
                         break
                 else:                
                     self.energy[x, y] -= self.DELTA_ENERGY
-                    qty_decrease = self.INIT_ENERGY * self.seeds[x, y]
-                    if self.energy[x, y] < qty_decrease:
+                    qty_decrease = self.GROWTH * (self.seeds[x, y] - 1)
+                    if self.energy[x, y] <= qty_decrease:
                         self.seeds[x, y] -= 1
     
     def adjust_seeds(self, x, y):
@@ -130,24 +130,3 @@ class Plant:
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.seeds!r}>'
-
-if __name__ == '__main__':
-    from surface import Surface
-    from water import Water
-    surface = Surface()
-    filename = 'images/c001_004.png'
-    surface.from_file(filename)
-    water = Water(surface)
-    water.add()
-    plant = Plant(surface, water)
-    plant_percentage = 50
-    plant.seed(plant_percentage)
-    xs, ys = np.nonzero(plant.seeds)
-    visited = []
-    for x, y in zip(xs, ys):
-        if (x, y) in visited:
-            continue
-        n = plant.neighbors(x, y)
-        visited.extend(n)
-        # print(n)
-    print("Elements", xs.size)

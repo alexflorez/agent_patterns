@@ -27,7 +27,7 @@ class Water:
     @functools.lru_cache(maxsize=None)
     def region_idxs_unq(self, x, y):
         """
-        Find the unique values of the indexes of a 3x3 region.
+        Find the unique values of the indexes of a n x n region.
         """
         rows, columns = self.height.shape
         ixs, jys = self.surface.region_idxs(x, y, rows, columns)
@@ -38,7 +38,7 @@ class Water:
 
     def minimal(self, tmp_height, x, y):
         """
-        Find the minimum value indexes of a 3x3 region.
+        Find the minimum value indexes of a n x n region.
         If there is more than a minimum value, one is chosen at random.
         """
         ixs, jys, ixs_uq, jys_uq = self.region_idxs_unq(x, y)

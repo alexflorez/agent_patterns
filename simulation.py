@@ -23,7 +23,7 @@ def simulation(filename, num_iters):
     # rules of simulation
     water_grow = 5
     times_add_water = 10
-    times_water_moves = 2
+    times_water_moves = 10
     
     rows, columns = surface.level.shape
     plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)

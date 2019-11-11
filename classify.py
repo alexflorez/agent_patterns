@@ -1,9 +1,9 @@
 from itertools import combinations
-import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.model_selection import cross_val_predict
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn import preprocessing
 
 
 def classify(train_data, classes):
@@ -11,10 +11,13 @@ def classify(train_data, classes):
     Perform a classification using k-Nearest Neighbors 
     with 10-fold cross-validation scheme
     """
+    #scaled_data = preprocessing.scale(train_data)
+    scaler = preprocessing.StandardScaler()
+    scaled_data = scaler.fit_transform(train_data)
     classifier = KNeighborsClassifier(n_neighbors=1)
     # kfold: not greater than the number of members in each class
     kfold = 10
-    predicted = cross_val_predict(classifier, train_data, classes, cv=kfold)
+    predicted = cross_val_predict(classifier, scaled_data, classes, cv=kfold)
     score = metrics.accuracy_score(classes, predicted)
     return score
 
