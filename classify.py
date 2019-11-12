@@ -11,7 +11,6 @@ def classify(train_data, classes):
     Perform a classification using k-Nearest Neighbors 
     with 10-fold cross-validation scheme
     """
-    #scaled_data = preprocessing.scale(train_data)
     scaler = preprocessing.StandardScaler()
     scaled_data = scaler.fit_transform(train_data)
     classifier = KNeighborsClassifier(n_neighbors=1)
@@ -34,8 +33,8 @@ if __name__ == '__main__':
     # 4: mass 
     values = [1, 2, 3, 4]
     # features to consider in classification
-    start = 20
-    stop = 95
+    start = 0
+    stop = 100
     # number of iterations
     limit = 100
     for i in values:

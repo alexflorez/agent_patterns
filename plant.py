@@ -21,7 +21,7 @@ class Plant:
         Add seeds to the surface level.
         Seeds are added over the surface in percentages.
         """
-        #random.seed(5)
+        random.seed(21)
         percent = self.seeds.size * percent // 100
         choices = random.sample(range(self.seeds.size), percent)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
@@ -29,10 +29,9 @@ class Plant:
         self.energy[xs, ys] += self.INIT_ENERGY
 
     def qty_water_region(self, x, y):
-        rows, columns = self.surface.level.shape
-        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
+        ixs, jys = self.surface.region_idxs(x, y)
         region = self.water.height[ixs, jys]
-        return ixs, jys, region.sum()
+        return ixs, jys, sum(region.ravel())
     
     def horiz_vert_grow(self, x, y):
         self.energy[x, y] += self.DELTA_ENERGY
@@ -56,7 +55,6 @@ class Plant:
             else:   
                 # check if neigbors have qty_water_grow
                 neigh = self.neighbors(x, y)
-                
                 for i, j in neigh:
                     nxs, nys, qty_water = self.qty_water_region(i, j)
                     if qty_water >= qty_water_grow:
@@ -74,18 +72,11 @@ class Plant:
         """
         Update plant growth in vertical and horizontal ways.
         """
-        rows, columns = self.surface.level.shape        
         level_seed = self.surface.level[x, y] + self.seeds[x, y]
         level_seed = float(level_seed)
-        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
+        ixs, jys = self.surface.region_idxs(x, y)
         flag_horizontal = False
-        # only consider neighbors not the same point
-        cixs = ixs[:]
-        cjys = jys[:]
-        m = len(cixs) // 2
-        del cixs[m]
-        del cjys[m]
-        for i, j in zip(cixs, cjys):
+        for i, j in zip(ixs.ravel(), jys.ravel()):
             level_neighbor = self.surface.level[i, j] + self.seeds[i, j]
             level_neighbor = float(level_neighbor)
             allowed_heights = list(range(1, self.POINTS + 1))
@@ -97,6 +88,7 @@ class Plant:
                 # Because of growing, lose some energy
                 self.energy[x, y] -= self.DELTA_ENERGY
                 break
+    
         if not flag_horizontal:
             # Vertical growing.
             self.seeds[x, y] += 1
@@ -105,26 +97,26 @@ class Plant:
             self.energy[x, y] -= self.DELTA_ENERGY
 
     def neighbors(self, x, y):
-        rows, columns = self.seeds.shape
         node = (x, y)
-        visited = [node]
+        visited = {node}
         stack = [node]
         while stack:
             node = stack[-1]
             if node not in visited:
-                visited.append(node)
+                visited.add(node)
             remove_from_stack = True
             i, j = node
-            ixs, jys = self.surface.region_idxs(i, j, rows, columns)
-            pts = np.nonzero(self.seeds[ixs, jys])[0]
-            for p in pts:
-                new_node = (ixs[p], jys[p])
+            ixs, jys = self.surface.region_idxs(i, j)
+            xpts, ypts = self.seeds[ixs, jys].nonzero()
+            for i, j in zip(xpts, ypts):
+                new_node = (ixs[i, j], jys[i, j])
                 if new_node not in visited:
                     stack.append(new_node)
                     remove_from_stack = False
                     break
             if remove_from_stack:
                 stack.pop()
+        visited.remove((x, y))
         return visited
 
     def __repr__(self):

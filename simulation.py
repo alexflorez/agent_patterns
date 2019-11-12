@@ -49,28 +49,30 @@ if __name__ == '__main__':
     """
     Visualize the plant growth
     """
-    num_iters, rows, columns = plant_data.shape
-    # max value of seeds over surface
-    max_val = plant_data[-1].max() + 1
-    fig, ax = plt.subplots()
-    plt.subplots_adjust(left=0.10, bottom=0.25)
-    val_init = num_iters // 2
-    # Discrete color map with plt.cm.get_cmap()
-    seeds_plt = plt.imshow(plant_data[val_init], extent=[0, columns, 0, rows],
-                           cmap=plt.cm.get_cmap('viridis', max_val), alpha=0.8, interpolation='nearest')
-    plt.colorbar(ticks=range(max_val), label='Height of plants')
-    plt.clim(-0.5, max_val-0.5)
-    plt.axis(aspect='image')
-    plt.axis('off')
-
-    ax_steps = plt.axes([0.20, 0.07, 0.70, 0.04])
-    slider_steps = Slider(ax_steps, 'Steps', 0, num_iters - 1, 
-                          valinit=val_init, valstep=1)
-
-    def update(val):
-        step = slider_steps.val
-        step = int(step)
-        seeds_plt.set_data(plant_data[step])
-
-    slider_steps.on_changed(update)
-    plt.show()
+    plotting = True
+    if plotting:
+        num_iters, rows, columns = plant_data.shape
+        # max value of seeds over surface
+        max_val = plant_data[-1].max() + 1
+        fig, ax = plt.subplots()
+        plt.subplots_adjust(left=0.10, bottom=0.25)
+        val_init = num_iters // 2
+        # Discrete color map with plt.cm.get_cmap()
+        seeds_plt = plt.imshow(plant_data[val_init], extent=[0, columns, 0, rows],
+                               cmap=plt.cm.get_cmap('viridis', max_val), alpha=0.8, interpolation='nearest')
+        plt.colorbar(ticks=range(max_val), label='Height of plants')
+        plt.clim(-0.5, max_val-0.5)
+        plt.axis(aspect='image')
+        plt.axis('off')
+    
+        ax_steps = plt.axes([0.20, 0.07, 0.70, 0.04])
+        slider_steps = Slider(ax_steps, 'Steps', 0, num_iters - 1, 
+                              valinit=val_init, valstep=1)
+    
+        def update(val):
+            step = slider_steps.val
+            step = int(step)
+            seeds_plt.set_data(plant_data[step])
+    
+        slider_steps.on_changed(update)
+        plt.show()

@@ -1,9 +1,5 @@
 import random
 import numpy as np
-from itertools import product
-from collections import OrderedDict
-import functools
-import array
 
 
 class Water:
@@ -24,65 +20,47 @@ class Water:
         xs, ys = np.unravel_index(choices, self.height.shape)
         self.height[xs, ys] = self.height[xs, ys] + 1
 
-    @functools.lru_cache(maxsize=None)
-    def region_idxs_unq(self, x, y):
-        """
-        Find the unique values of the indexes of a n x n region.
-        """
-        rows, columns = self.height.shape
-        ixs, jys = self.surface.region_idxs(x, y, rows, columns)
-        # get unique and ordered values from indexes
-        ixs_uq = array.array('B', OrderedDict.fromkeys(ixs))
-        jys_uq = array.array('B', OrderedDict.fromkeys(jys))
-        return ixs, jys, ixs_uq, jys_uq
-
-    def minimal(self, tmp_height, x, y):
+    def minimal_idxs(self, tmp_height, x, y):
         """
         Find the minimum value indexes of a n x n region.
         If there is more than a minimum value, one is chosen at random.
         """
-        ixs, jys, ixs_uq, jys_uq = self.region_idxs_unq(x, y)
         # region surface and region height water
-        # changing np.ix_(ixs_uq, jys_uq)
-        ix = np.array(ixs_uq)[np.newaxis].T
-        jy = np.array(jys_uq)[np.newaxis]
-        reg_sf = self.surface.level[ix, jy]
-        reg_hw = tmp_height[ix, jy]
+        ixs, jys = self.surface.region_idxs(x, y)
+        reg_sf = self.surface.level[ixs, jys]
+        reg_hw = tmp_height[ixs, jys]
         region = reg_sf + reg_hw
         # to randomly choose among the minimal values
-        # i = np.nonzero(region.ravel() == region.min())[0]
-        items = (region.ravel() == region.min()).nonzero()[0]
-        if len(items) > 1:
-            k = random.choice(items)
-        else:
-            k = items[0]
-        return ixs[k], jys[k]
+        items, jtems = (region == min(region.ravel())).nonzero()
+        nitems = len(items)
+        k = random.randint(0, nitems - 1) if nitems > 1 else 0
+        i, j = items[k], jtems[k]
+        return ixs[i, j], jys[i, j]
         
     def move(self):
         """
         Update the position and height of the water.
         """
-        rows, columns = self.height.shape
         nw_height = np.copy(self.height)
-        for x, y in product(range(rows), range(columns)):
-            if self.height[x, y] >= 1:
-                i, j = self.minimal(nw_height, x, y)
-                nw_height[x, y] -= 1
-                nw_height[i, j] += 1
+        xnz, ynz = self.height.nonzero()
+        for x, y in zip(xnz, ynz):
+            i, j = self.minimal_idxs(nw_height, x, y)
+            nw_height[x, y] -= 1
+            nw_height[i, j] += 1
         self.height = nw_height
 
-    def adjust_water(self, drops, xs, ys):
+    def adjust_water(self, drops, ixs, jys):
         """
         Adjust the height of the water, subtract the drops
         until the specified amount is reduced.
         """
         while drops > 0:
-            for x, y in zip(xs, ys):
+            for x, y in zip(ixs.ravel(), jys.ravel()):
                 if self.height[x, y] > 0:
                     self.height[x, y] -= 1
                     drops -= 1
-                if drops == 0:
-                    break
+                    if drops == 0:
+                        break
 
     def __repr__(self):
         class_name = type(self).__name__
