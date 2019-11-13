@@ -97,26 +97,18 @@ class Plant:
             self.energy[x, y] -= self.DELTA_ENERGY
 
     def neighbors(self, x, y):
-        node = (x, y)
-        visited = {node}
-        stack = [node]
+        start = (x, y)
+        visited, stack = set(), [start]
         while stack:
-            node = stack[-1]
-            if node not in visited:
-                visited.add(node)
-            remove_from_stack = True
-            i, j = node
-            ixs, jys = self.surface.region_idxs(i, j)
-            xpts, ypts = self.seeds[ixs, jys].nonzero()
-            for i, j in zip(xpts, ypts):
-                new_node = (ixs[i, j], jys[i, j])
-                if new_node not in visited:
-                    stack.append(new_node)
-                    remove_from_stack = False
-                    break
-            if remove_from_stack:
-                stack.pop()
-        visited.remove((x, y))
+            vertex = stack.pop()
+            if vertex not in visited:
+                visited.add(vertex)
+                i, j = vertex
+                ixs, jys = self.surface.region_idxs(i, j)
+                xpts, ypts = self.seeds[ixs, jys].nonzero()
+                nodes = {(ixs[i, j], jys[i, j]) for i, j in zip(xpts, ypts)}
+                stack.extend(nodes - visited)
+        visited.remove(start)
         return visited
 
     def __repr__(self):

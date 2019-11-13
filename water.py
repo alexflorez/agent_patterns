@@ -1,5 +1,15 @@
+from numba import jit
 import random
 import numpy as np
+
+@jit(nopython=True, fastmath = True)
+def min_idxs(region, ixs, jys):
+    # to randomly choose among the minimal values
+    items, jtems = np.nonzero(region == np.min(region))
+    nitems = len(items)
+    k = random.randint(0, nitems - 1) if nitems > 1 else 0
+    i, j = items[k], jtems[k]
+    return ixs[i, j], jys[i, j]
 
 
 class Water:
@@ -30,21 +40,19 @@ class Water:
         reg_sf = self.surface.level[ixs, jys]
         reg_hw = tmp_height[ixs, jys]
         region = reg_sf + reg_hw
-        # to randomly choose among the minimal values
-        items, jtems = (region == min(region.ravel())).nonzero()
-        nitems = len(items)
-        k = random.randint(0, nitems - 1) if nitems > 1 else 0
-        i, j = items[k], jtems[k]
-        return ixs[i, j], jys[i, j]
+        i, j = min_idxs(region, ixs, jys)
+        return i, j
         
     def move(self):
         """
         Update the position and height of the water.
         """
-        nw_height = np.copy(self.height)
+        nw_height = np.array(self.height)
         xnz, ynz = self.height.nonzero()
         for x, y in zip(xnz, ynz):
             i, j = self.minimal_idxs(nw_height, x, y)
+            if (i, j) == (x, y):
+                continue
             nw_height[x, y] -= 1
             nw_height[i, j] += 1
         self.height = nw_height
