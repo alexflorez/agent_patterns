@@ -3,7 +3,6 @@ from simulation import simulation
 import os
 from collections import defaultdict
 import numpy as np
-import pandas as pd
 import multiprocessing
 
 
@@ -38,28 +37,54 @@ def read_data(path_base):
     return class_samples
 
 
-def features(data, func):
+def features(data, measure):
     """
     Extract a feature vector of data. 
     data is of shape (num_iters, rows, columns)
     """
+    def mean_nz(data):
+        count = np.count_nonzero(data, axis=(1, 2))
+        count[count == 0] = 1
+        return data.sum(axis=(1, 2)) / count
     feats = {"sum": data.sum(axis=(1, 2)),
              "max": data.max(axis=(1, 2)),
-             "mean": data.sum(axis=(1, 2)) / np.count_nonzero(data, axis=(1, 2))}
-    return feats[func].tolist()
+             "min": data.min(axis=(1, 2)),
+             "count": np.count_nonzero(data, axis=(1, 2)),
+             "mean_nz": mean_nz(data),
+             "mean": data.mean(axis=(1, 2))}
+    return feats[measure].tolist()
 
 
-def extract_features(name_class, file_sample, num_iters):
+def extract_features(data_feats):
     """
-    Generate data and extract feature vector.
+    Extract feature vector
+    data_feats correspond to 300 x n x m 
     """
-    plant_data, water_data, energy_data = simulation(file_sample, num_iters)
-    feats_plant = features(plant_data, "mean")
-    feats_water = features(water_data, "mean")
+
+    plant_data = data_feats[: 100, :, :]
+    water_data = data_feats[100: 200, :, :]
+    energy_data = data_feats[200: 300, :, :]
+
+    feats_plant_nz = features(plant_data, "mean_nz")
+    feats_water_nz = features(water_data, "mean_nz")
     feats_mass_plant = features(plant_data, "sum")
     feats_energy = features(energy_data, "sum")
-    feats_cls = feats_plant + feats_water + feats_energy + feats_mass_plant + [name_class]
-    return feats_cls
+    feats_count_plant = features(plant_data, "count")
+    feats_plant = features(plant_data, "mean")
+
+    feats = feats_plant_nz + feats_water_nz + feats_mass_plant + \
+            feats_energy + feats_count_plant + feats_plant
+    return feats
+
+
+def collect_data(name_class, file_sample, num_iters):
+    """
+    Generate and concatenate data.
+    """
+    plant_data, water_data, energy_data = simulation(file_sample, num_iters)
+    data = np.concatenate((plant_data, water_data, energy_data))
+    data_cls = [data, name_class]
+    return data_cls
 
 
 if __name__ == '__main__':
@@ -70,11 +95,7 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     # Adapt data to match arguments of pool.starmap
     class_samples_iters = [(cls_, smp, num_iters) for cls_, smp in class_samples]
-    result_data = pool.starmap(extract_features, class_samples_iters)
-    
-    # create a dataframe to hold the feature vectors
-    columns = num_iters * 4
-    feature_data = pd.DataFrame(result_data, columns=np.arange(columns + 1))
-    feature_data = feature_data.rename(columns = {columns: 'class'})
-    np.save("feature_data.npy", feature_data)
+    result_data = pool.starmap(collect_data, class_samples_iters)
+    # Store the data
+    np.save("data.npy", result_data)
     

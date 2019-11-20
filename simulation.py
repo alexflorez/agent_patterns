@@ -12,7 +12,7 @@ def simulation(filename, num_iters):
     """
     Perform a simulation of plant growth on a surface.
     """
-    surface = Surface()
+    surface = Surface(n_region=3)
     surface.from_file(filename)
     water = Water(surface)
     water.add()
@@ -36,6 +36,7 @@ def simulation(filename, num_iters):
         water_data[i] = water.height
         energy_data[i] = plant.energy
         plant.grow(water_grow)
+        water.drop(50)
         if i % times_add_water == 0:
             water.add()
     return plant_data, water_data, energy_data

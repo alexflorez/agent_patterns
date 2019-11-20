@@ -2,6 +2,7 @@ from numba import jit
 import random
 import numpy as np
 
+
 @jit(nopython=True, fastmath = True)
 def min_idxs(region, ixs, jys):
     # to randomly choose among the minimal values
@@ -29,6 +30,13 @@ class Water:
         choices = random.sample(range(self.height.size), percent)
         xs, ys = np.unravel_index(choices, self.height.shape)
         self.height[xs, ys] = self.height[xs, ys] + 1
+
+    def drop(self, percent=50):
+        xnz, ynz = self.height.nonzero()
+        nz = len(xnz)
+        qty_drop = nz * percent // 100
+        ix = random.sample(range(nz), qty_drop)
+        self.height[xnz[ix], ynz[ix]] -= 1
 
     def minimal_idxs(self, tmp_height, x, y):
         """

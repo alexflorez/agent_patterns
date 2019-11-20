@@ -4,9 +4,10 @@ from skimage import io
 
 
 class Surface:
-    def __init__(self):
+    def __init__(self, n_region):
         self.level = None    
         self.x_idxs, self.y_idxs = (None, None)
+        self.n_region = n_region
 
     def from_file(self, filename):
         """
@@ -36,8 +37,9 @@ class Surface:
     
     def idxs_region(self):
         rows, columns = self.level.shape
-        xs = [rows - 1] + list(range(rows)) + [0]
-        ys = [columns - 1] + list(range(columns)) + [0]
+        m = self.n_region // 2
+        xs = list(range(rows - m, rows)) + list(range(rows)) + list(range(m))
+        ys = list(range(columns - m, columns)) + list(range(columns)) + list(range(m))
         x_idxs, y_idxs = np.meshgrid(xs, ys, indexing='ij')
         return x_idxs, y_idxs
 
@@ -48,8 +50,7 @@ class Surface:
         according to the current x and y positions.
         Return the indexes of the region.
         """
-        # for a 3x3 region
-        n = 3
+        n = self.n_region
         ixs = self.x_idxs[x: x + n, x: x + n]
         jys = self.y_idxs[y: y + n, y: y + n]
         return ixs, jys
