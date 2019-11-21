@@ -4,10 +4,10 @@ import numpy as np
 
 
 @jit(nopython=True, fastmath = True)
-def min_idxs(region, ixs, jys):
-    # to randomly choose among the minimal values
-    items, jtems = np.nonzero(region == np.min(region))
-    nitems = len(items)
+def min_idxs(region, ixs, jys, n):
+    # Randomly choose a value less than the region's center
+    items, jtems = np.nonzero(region <= region[n // 2, n // 2])
+    nitems = items.size
     k = random.randint(0, nitems - 1) if nitems > 1 else 0
     i, j = items[k], jtems[k]
     return ixs[i, j], jys[i, j]
@@ -48,9 +48,9 @@ class Water:
         reg_sf = self.surface.level[ixs, jys]
         reg_hw = tmp_height[ixs, jys]
         region = reg_sf + reg_hw
-        i, j = min_idxs(region, ixs, jys)
+        i, j = min_idxs(region, ixs, jys, self.surface.n_region)
         return i, j
-        
+
     def move(self):
         """
         Update the position and height of the water.
