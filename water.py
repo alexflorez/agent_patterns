@@ -7,7 +7,7 @@ import numpy as np
 def min_idxs(region, ixs, jys, n):
     # Randomly choose a value less than the region's center
     c = n // 2
-    items, jtems = np.nonzero(region < region[c, c] - 1)
+    items, jtems = np.nonzero(region < region[c, c])
     nitems = items.size
     if nitems:
         k = random.randint(0, nitems - 1)
@@ -35,8 +35,11 @@ class Water:
         xs, ys = np.unravel_index(choices, self.height.shape)
         self.height[xs, ys] = self.height[xs, ys] + 1
 
-    def set(self, xs, ys):
+    def set_points(self, xs, ys):
         self.height[xs, ys] = 1
+
+    def set(self, data):
+        self.height = data
 
     def drop(self, percent=50):
         xnz, ynz = self.height.nonzero()

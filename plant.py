@@ -5,10 +5,11 @@ import numpy as np
 class Plant:
     # points pixel above and points pixel below to grow
     POINTS = 10      # difference (level + seed) - neighbor(level + seed)
-    INIT_ENERGY = 5
-    DELTA_ENERGY = 1
+    INIT_ENERGY = 4
+    DELTA_INCREASE = 4
+    DELTA_DECREASE = 1
     DECREASE = 0
-    GROWTH = 10
+    GROWTH = 4
 
     def __init__(self, surface, water):
         self.surface = surface
@@ -21,12 +22,18 @@ class Plant:
         Add seeds to the surface level.
         Seeds are added over the surface in percentages.
         """
-        random.seed(21)
+        #random.seed(21)
         percent = self.seeds.size * percent // 100
         choices = random.sample(range(self.seeds.size), percent)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
         self.seeds[xs, ys] += 1
         self.energy[xs, ys] += self.INIT_ENERGY
+
+    def set_points(self, xs, ys):
+        self.seeds[xs, ys] = 1
+
+    def set(self, data):
+        self.seeds = data
 
     def qty_water_region(self, x, y):
         ixs, jys = self.surface.region_idxs(x, y)
@@ -34,7 +41,7 @@ class Plant:
         return ixs, jys, sum(region.ravel())
     
     def horiz_vert_grow(self, x, y):
-        self.energy[x, y] += self.DELTA_ENERGY
+        self.energy[x, y] += self.DELTA_INCREASE
         qty_growth = self.GROWTH * self.seeds[x, y]
         if self.energy[x, y] >= qty_growth:
             # Vertical and horizontal growth
@@ -63,7 +70,7 @@ class Plant:
                         self.water.adjust_water(qty_water_grow, nxs, nys)
                         break
                 else:                
-                    self.energy[x, y] -= self.DELTA_ENERGY
+                    self.energy[x, y] -= self.DELTA_DECREASE
                     qty_decrease = self.GROWTH * (self.seeds[x, y] - 1)
                     if self.energy[x, y] <= qty_decrease:
                         self.seeds[x, y] -= 1
@@ -86,7 +93,7 @@ class Plant:
                 self.energy[i, j] += self.INIT_ENERGY
                 flag_horizontal = True
                 # Because of growing, lose some energy
-                self.energy[x, y] -= self.DELTA_ENERGY
+                self.energy[x, y] -= self.DELTA_DECREASE
                 break
     
         if not flag_horizontal:
@@ -94,8 +101,8 @@ class Plant:
             self.seeds[x, y] += 1
             # add INIT_ENERGY, subtract DELTA_ENERGY
             self.energy[x, y] += self.INIT_ENERGY
-            self.energy[x, y] -= self.DELTA_ENERGY
-
+            self.energy[x, y] -= self.DELTA_DECREASE
+    
     def neighbors(self, x, y):
         start = (x, y)
         visited, stack = set(), [start]
