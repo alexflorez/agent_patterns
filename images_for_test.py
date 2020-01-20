@@ -1,4 +1,3 @@
-from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -114,8 +113,8 @@ def data_inv_pyramid(rows, cols):
 
 
 if __name__ == '__main__':
-    rows = 50
-    cols = 50
+    rows = 10
+    cols = 10
 
     slope = data_slope(rows, cols)
     half_v = data_half_v(rows, cols)
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     inv_pyramid = data_inv_pyramid(rows, cols)
     full_vinv = data_full_vinv(rows, cols)
     
-    np.save("slope.npy", slope)
+    np.save("images/slope.npy", slope)
     # np.save("half_v.npy", half_v)
     # np.save("full_v.npy", full_v)
     # np.save("full_vinv.npy", full_vinv)

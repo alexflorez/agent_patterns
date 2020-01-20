@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 
-@jit(nopython=True, fastmath = True)
+@jit(nopython=True, fastmath=True)
 def min_idxs(region, ixs, jys, n):
     # Randomly choose a value less than the region's center
     c = n // 2
@@ -38,7 +38,7 @@ class Water:
     def set_points(self, xs, ys):
         self.height[xs, ys] = 1
 
-    def set(self, data):
+    def set_data(self, data):
         self.height = data
 
     def drop(self, percent=50):
@@ -56,8 +56,8 @@ class Water:
         # region surface and region height water
         ixs, jys = self.surface.region_idxs(x, y)
         reg_sf = self.surface.level[ixs, jys]
-        reg_hw = tmp_height[ixs, jys]
-        region = reg_sf + reg_hw
+        reg_wt = tmp_height[ixs, jys]
+        region = reg_sf + reg_wt
         i, j = min_idxs(region, ixs, jys, self.surface.n_region)
         return i, j
 

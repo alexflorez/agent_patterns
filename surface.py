@@ -1,13 +1,19 @@
 import functools
+import imghdr
 import numpy as np
 from skimage import io
 
 
 class Surface:
-    def __init__(self, n_region):
+    def __init__(self, filename, n_region):
         self.level = None    
         self.x_idxs, self.y_idxs = (None, None)
         self.n_region = n_region
+
+        if imghdr.what(filename):
+            self.from_file(filename)
+        else:
+            self.from_data(filename)
 
     def from_file(self, filename):
         """

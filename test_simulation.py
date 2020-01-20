@@ -9,8 +9,7 @@ import pytest
 def create_surface():
     # filename = 'images/flat.jpg'
     filename = 'images/tinybeans.jpg'
-    surface = Surface()
-    surface.from_file(filename)
+    surface = Surface(filename, 3)
     return surface
 
 @pytest.fixture

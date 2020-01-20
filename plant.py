@@ -32,7 +32,7 @@ class Plant:
     def set_points(self, xs, ys):
         self.seeds[xs, ys] = 1
 
-    def set(self, data):
+    def set_data(self, data):
         self.seeds = data
 
     def qty_water_region(self, x, y):
