@@ -54,11 +54,12 @@ class Water:
         If there is more than a minimum value, one is chosen at random.
         """
         # region surface and region height water
+        n = self.surface.n_region
         ixs, jys = self.surface.region_idxs(x, y)
         reg_sf = self.surface.level[ixs, jys]
         reg_wt = tmp_height[ixs, jys]
         region = reg_sf + reg_wt
-        i, j = min_idxs(region, ixs, jys, self.surface.n_region)
+        i, j = min_idxs(region, ixs, jys, n)
         return i, j
 
     def move(self):

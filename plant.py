@@ -6,7 +6,7 @@ class Plant:
     # points pixel above and points pixel below to grow
     POINTS = 10      # difference (level + seed) - neighbor(level + seed)
     INIT_ENERGY = 4
-    DELTA_INCREASE = 4
+    DELTA_INCREASE = 1
     DELTA_DECREASE = 1
     DECREASE = 0
     GROWTH = 4
@@ -39,15 +39,18 @@ class Plant:
         ixs, jys = self.surface.region_idxs(x, y)
         region = self.water.height[ixs, jys]
         return ixs, jys, sum(region.ravel())
-    
-    def horiz_vert_grow(self, x, y):
-        self.energy[x, y] += self.DELTA_INCREASE
+
+    def horiz_vert_grow(self, qty_water, x, y):
+        # consume water in this position
+        # each drop provides 1 unit of energy
+        energy = qty_water * self.DELTA_INCREASE
+        self.energy[x, y] += energy
         qty_growth = self.GROWTH * self.seeds[x, y]
         if self.energy[x, y] >= qty_growth:
             # Vertical and horizontal growth
             self.adjust_seeds(x, y)
 
-    def grow(self, qty_water_grow):
+    def grow(self):
         """
         Assess the plant growth according to
         the amount of water around a n x n region.
@@ -55,26 +58,26 @@ class Plant:
         xseeds, yseeds = np.nonzero(self.seeds)
         for x, y in zip(xseeds, yseeds):
             ixs, jys, qty_water = self.qty_water_region(x, y)
-            if qty_water >= qty_water_grow:
-                self.horiz_vert_grow(x, y)
+            if qty_water:
+                self.horiz_vert_grow(qty_water, x, y)
                 # Update water height
-                self.water.adjust_water(qty_water_grow, ixs, jys)
+                self.water.adjust_water(qty_water, ixs, jys)
             else:   
-                # check if neigbors have qty_water_grow
+                # check if neigbors have access to water
                 neigh = self.neighbors(x, y)
                 for i, j in neigh:
                     nxs, nys, qty_water = self.qty_water_region(i, j)
-                    if qty_water >= qty_water_grow:
-                        self.horiz_vert_grow(x, y)
+                    if qty_water:
+                        self.horiz_vert_grow(qty_water, x, y)
                         # Update water height
-                        self.water.adjust_water(qty_water_grow, nxs, nys)
+                        self.water.adjust_water(qty_water, nxs, nys)
                         break
                 else:                
                     self.energy[x, y] -= self.DELTA_DECREASE
                     qty_decrease = self.GROWTH * (self.seeds[x, y] - 1)
                     if self.energy[x, y] <= qty_decrease:
                         self.seeds[x, y] -= 1
-    
+
     def adjust_seeds(self, x, y):
         """
         Update plant growth in vertical and horizontal ways.

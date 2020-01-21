@@ -22,6 +22,7 @@ def classify(train_data, classes):
     score = metrics.accuracy_score(classes, predicted)
     return score
 
+
 if __name__ == '__main__':
 
     # read data

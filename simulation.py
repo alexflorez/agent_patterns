@@ -20,7 +20,6 @@ def simulation(filename, num_iters):
     plant.seed(plant_percentage)
 
     # rules of simulation
-    water_grow = 5
     times_add_water = 10
     times_water_moves = 10
     
@@ -34,32 +33,56 @@ def simulation(filename, num_iters):
         energy_data[i] = plant.energy
         for _ in range(times_water_moves):
             water.move()
-        plant.grow(water_grow)
+        plant.grow()
         if i % times_add_water == 0:
             water.add()
     return plant_data, water_data, energy_data
 
 
 def check_movement_water(filename, num_iters):
+    # One drop of water
+    # One line of water
+    # All the surface covered by water
     surface = Surface(filename, n_region=3)
     water = Water(surface)
     data = np.zeros_like(surface.level)
-    #data[5, 0] = 1
     data[:, 1] = 1
     water.set_data(data)
-    #water.add()
-    
+
     rows, columns = surface.level.shape
     water_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     for i in range(num_iters):
         water_data[i] = water.height
         water.move()
     return water_data
-    
+
+
+def check_growth(filename, num_iters):
+    from images_for_test import data_half_v
+    # One seed
+    surface = Surface(filename, n_region=3)
+    water = Water(surface)
+    plant = Plant(surface, water)
+    seeds = np.zeros_like(surface.level)
+    seeds[5, 5] = 1
+    plant.set_data(seeds)
+    # rules of simulation
+    rows, columns = surface.level.shape
+    plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
+
+    wt = data_half_v(rows, columns)
+    wt = np.flip(wt)
+    water.set_data(wt)
+    for i in range(num_iters):
+        plant_data[i] = plant.seeds
+        plant.grow()
+        water.move()
+    return plant_data
+
 
 def plot_data(data):
     num_iters, rows, columns = data.shape
-        # max value of seeds over surface
+    # max value of seeds over surface
     max_val = data.max() + 1
     fig, ax = plt.subplots()
     plt.subplots_adjust(left=0.10, bottom=0.25)
@@ -87,14 +110,15 @@ def plot_data(data):
 
 if __name__ == '__main__':
     filename = 'images/c001_004.png'
-    filename = 'images/slope.npy'
-    num_iters = 30
+    # filename = 'images/slope.npy'
+    num_iters = 100
     # simulation data contains plant, water, and energy data
-    # plant_data, water_data, energy_data = simulation(filename, num_iters)
-    water_data = check_movement_water(filename, num_iters)
+    plant_data, water_data, energy_data = simulation(filename, num_iters)
+    # water_data = check_movement_water(filename, num_iters)
+    # plant_data = check_growth(filename, num_iters)
     """
     Visualize the generated data
     """
     plotting = True
     if plotting:
-        plot_data(water_data)
+        plot_data(plant_data)
