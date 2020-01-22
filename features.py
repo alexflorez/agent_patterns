@@ -87,6 +87,16 @@ def collect_data(name_class, file_sample, num_iters):
     return data_cls
 
 
+def store_data(feature_data):
+    labels = feature_data[:, 1]
+    np.save("labels_data.npy", labels)
+
+    data_to_process = feature_data[:, 0]
+    data_features = [extract_features(dt) for dt in data_to_process]
+    train_data = np.array(data_features, dtype=np.float32)
+    np.save("train_data.npy", train_data)
+
+
 if __name__ == '__main__':
     path_base = "bases/brodatz"
     class_samples = read_data(path_base)
@@ -95,7 +105,8 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     # Adapt data to match arguments of pool.starmap
     class_samples_iters = [(cls_, smp, num_iters) for cls_, smp in class_samples]
-    result_data = pool.starmap(collect_data, class_samples_iters)
+    feature_data = pool.starmap(collect_data, class_samples_iters)
     # Store the data
-    np.save("data.npy", result_data)
+    # np.save("data.npy", feature_data)
+    store_data(raw_data)
     

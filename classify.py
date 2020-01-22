@@ -1,52 +1,63 @@
 from features import extract_features
+from features import store_data
 
 from itertools import combinations
 import numpy as np
-from sklearn.model_selection import cross_val_predict
-from sklearn import metrics
-from sklearn.neighbors import KNeighborsClassifier
+
 from sklearn import preprocessing
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
 
 
-def classify(train_data, classes):
+def classify(train_data, classes, name):
     """
     Perform a classification using k-Nearest Neighbors 
     with 10-fold cross-validation scheme
     """
     scaler = preprocessing.StandardScaler()
     scaled_data = scaler.fit_transform(train_data)
-    classifier = KNeighborsClassifier(n_neighbors=1)
+
+    classifiers = {'kNN': KNeighborsClassifier(n_neighbors=3),
+                   'LDA': LinearDiscriminantAnalysis(solver='lsqr', 
+                                                     shrinkage='auto'),
+                   'Gaussian': GaussianNB(),
+                   'Logistic': LogisticRegression(solver='lbfgs', multi_class='auto', 
+                                                  max_iter=5000, n_jobs=-1),
+                   'RandomForest': RandomForestClassifier(n_estimators=100, 
+                                                          max_depth=10,
+                                                          n_jobs=-1)}
     # kfold: not greater than the number of members in each class
+    classifier = classifiers[name]
     kfold = 10
-    predicted = cross_val_predict(classifier, scaled_data, classes, cv=kfold)
-    score = metrics.accuracy_score(classes, predicted)
-    return score
+    scores = cross_val_score(classifier, scaled_data, classes, cv=kfold)
+    return scores.mean(), scores.std()
 
 
 if __name__ == '__main__':
 
-    # read data
-    feature_data = np.load("data.npy", allow_pickle=True)
-    labels = feature_data[:, 1].tolist()
-    data_to_process = feature_data[:, 0]
+    # Set to True to save data
+    save = False
+    if save:
+        feature_data = np.load("data.npy", allow_pickle=True)
+        store_data(feature_data)
 
-    plant = data_to_process[0][: 100, :, :]
-    # print(plant.shape)
-    water = data_to_process[0][100: 200, :, :]
-    # print(water.shape)
-    energy = data_to_process[0][200: 300, :, :]
-    # print(energy.shape)
-
-    data_features = [extract_features(dt) for dt in data_to_process]
-    train_data = np.array(data_features, dtype=np.float32)
-    # print(train_data.shape)
-
+    # load data to process
+    train_data = np.load("train_data.npy", allow_pickle=True)
+    labels = np.load("labels_data.npy", allow_pickle=True)
+    labels = list(labels)
+    
     # 1: plant_nz
     # 2: water_nz 
     # 3: plant_mass 
     # 4: energy
     # 5: plant_count
     # 6: plant_mean
+    # 7: hist_plant
+    # 8: hist_water
     values = [1, 2, 3, 4, 5, 6] 
     # features to consider in classification
     start = 0
@@ -54,6 +65,8 @@ if __name__ == '__main__':
     # number of iterations
     limit = 100            
 
+    len_previous_data = 600
+    len_hist = 40
     for i in range(1, len(values) + 1):
         for c in combinations(values, i):
             idxs = []
@@ -61,6 +74,18 @@ if __name__ == '__main__':
                 begin = (k - 1) * limit + start
                 end = (k - 1) * limit + stop
                 idxs.extend(range(begin, end))
+            len_idxs = len(idxs)
+            idxs.extend(range(len_previous_data, len_previous_data + len_hist))
             processed_data = np.array(train_data[:, idxs], dtype=np.float32)
-            score = classify(processed_data, labels)
-            print(f"{c} Classification score: {score:.2f}")
+            score_mean, score_std = classify(processed_data, labels, "kNN")
+            print(f"kNN {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(processed_data, labels, "LDA")
+            print(f"LDA {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(processed_data, labels, "Gaussian")
+            print(f"Gaussian {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(processed_data, labels, "Logistic")
+            print(f"Logistic {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(processed_data, labels, "RandomForest")
+            print(f"RandomForest {c} Classification: {score_mean:.2f} {score_std:.2f}")
+
+ 
