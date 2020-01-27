@@ -8,21 +8,20 @@ from matplotlib.widgets import Slider
 plt.style.use('seaborn')
 
 
-def simulation(filename, num_iters):
+def simulation(parameters):
     """
     Perform a simulation of plant growth on a surface.
     """
+    filename, num_iters, *rest = parameters
+    # rules of simulation
+    times_add_water, times_water_moves, plant_percentage = rest
+
     surface = Surface(filename, n_region=3)
     water = Water(surface)
     water.add()
     plant = Plant(surface, water)
-    plant_percentage = 10
     plant.seed(plant_percentage)
 
-    # rules of simulation
-    times_add_water = 10
-    times_water_moves = 10
-    
     rows, columns = surface.level.shape
     plant_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     water_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
@@ -39,10 +38,11 @@ def simulation(filename, num_iters):
     return plant_data, water_data, energy_data
 
 
-def check_movement_water(filename, num_iters):
+def check_movement_water(parameters):
     # One drop of water
     # One line of water
     # All the surface covered by water
+    filename, num_iters, *rest = parameters
     surface = Surface(filename, n_region=3)
     water = Water(surface)
     data = np.zeros_like(surface.level)
@@ -57,9 +57,10 @@ def check_movement_water(filename, num_iters):
     return water_data
 
 
-def check_growth(filename, num_iters):
+def check_growth(parameters):
     from images_for_test import data_half_v
     # One seed
+    filename, num_iters, *rest = parameters
     surface = Surface(filename, n_region=3)
     water = Water(surface)
     plant = Plant(surface, water)
@@ -112,10 +113,14 @@ if __name__ == '__main__':
     filename = 'images/c001_004.png'
     # filename = 'images/slope.npy'
     num_iters = 100
+    times_add_water = 10
+    times_water_moves = 10
+    plant_percentage = 10
+    params = [filename, num_iters, times_add_water, times_water_moves, plant_percentage]
     # simulation data contains plant, water, and energy data
-    plant_data, water_data, energy_data = simulation(filename, num_iters)
-    # water_data = check_movement_water(filename, num_iters)
-    # plant_data = check_growth(filename, num_iters)
+    plant_data, water_data, energy_data = simulation(params)
+    # water_data = check_movement_water(params)
+    # plant_data = check_growth(params)
     """
     Visualize the generated data
     """

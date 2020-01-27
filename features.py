@@ -2,6 +2,7 @@ from simulation import simulation
 
 import os
 from collections import defaultdict
+from itertools import product
 import numpy as np
 import multiprocessing
 
@@ -21,13 +22,15 @@ def read_data(path_base):
     classes = []
     with os.scandir(path_base) as datapath:
         for class_ in datapath:
-            classes.append(class_.name)
+            if not class_.name.startswith('.'):
+                classes.append(class_.name)
 
     dataset = defaultdict(list)
     for cls_ in classes:
         with os.scandir(os.path.join(path_base, cls_)) as dataclass:
             for img in dataclass:
-                dataset[cls_].append(img.name)
+                if not img.name.startswith('.'):
+                    dataset[cls_].append(img.name)
 
     class_samples = []
     for cls_, smps in dataset.items():
@@ -77,36 +80,51 @@ def extract_features(data_feats):
     return feats
 
 
-def collect_data(name_class, file_sample, num_iters):
+def collect_data(*params):
     """
     Generate and concatenate data.
     """
-    plant_data, water_data, energy_data = simulation(file_sample, num_iters)
+    name_class, *rest_params = params
+    plant_data, water_data, energy_data = simulation(rest_params)
     data = np.concatenate((plant_data, water_data, energy_data))
     data_cls = [data, name_class]
     return data_cls
 
 
-def store_data(feature_data):
+def store_data(feature_data, params):
+    # ni: num_iters
+    # ta: times_add_water
+    # tm: times_water_moves
+    # pp: plant_percentage
+    # format to save: ni_ta_tm_pp.npy
+    ni, ta, tm, pp = params
+    feature_data = np.array(feature_data)
     labels = feature_data[:, 1]
-    np.save("labels_data.npy", labels)
+    np.save(f"label_{ni}_{ta}_{tm}_{pp}.npy", labels)
 
     data_to_process = feature_data[:, 0]
     data_features = [extract_features(dt) for dt in data_to_process]
-    train_data = np.array(data_features, dtype=np.float32)
-    np.save("train_data.npy", train_data)
+    data = np.array(data_features, dtype=np.float32)
+    np.save(f"data_{ni}_{ta}_{tm}_{pp}.npy", data)
 
 
 if __name__ == '__main__':
     path_base = "bases/brodatz"
+    cpus = multiprocessing.cpu_count()
     class_samples = read_data(path_base)
-
-    num_iters = 100
-    pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    # Adapt data to match arguments of pool.starmap
-    class_samples_iters = [(cls_, smp, num_iters) for cls_, smp in class_samples]
-    feature_data = pool.starmap(collect_data, class_samples_iters)
-    # Store the data
-    # np.save("data.npy", feature_data)
-    store_data(raw_data)
+    num_iters = [50, 100]
+    times_add_water = [10, 20]
+    times_water_moves = [10, 20]
+    plant_percentage = [10, 20, 40]
+    params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
+    for ps in params:
+        # Adapt data to match arguments of pool.starmap
+        parameters = [(cls_, smp, *ps)
+                      for cls_, smp in class_samples]
+        pool = multiprocessing.Pool(cpus)
+        feature_data = pool.starmap(collect_data, parameters)
+        pool.close()
+        pool.join()
+        # Store the data
+        store_data(feature_data, ps)
     

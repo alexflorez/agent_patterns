@@ -30,10 +30,10 @@ class Surface:
         Create a surface level by reading numpy data. 
         The data is stored as numpy format ".npy".
         """
-        self.level = np.load(filedata)
+        self.level = np.load(filedata, allow_pickle=True)
         self.x_idxs, self.y_idxs = self.idxs_region()
 
-    def reduce_to(self, percentage):
+    def reduce_height(self, percentage):
         """
         Change the surface level according to the 
         specified percentage.
