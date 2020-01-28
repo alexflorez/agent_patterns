@@ -2,6 +2,9 @@ from features import extract_features
 from features import store_data
 
 from itertools import combinations
+import argparse
+import os
+import sys
 import numpy as np
 
 from sklearn import preprocessing
@@ -32,23 +35,34 @@ def classify(train_data, classes, name):
                                                           n_jobs=-1)}
     # kfold: not greater than the number of members in each class
     classifier = classifiers[name]
-    kfold = 10
+    kfold = 4
     scores = cross_val_score(classifier, scaled_data, classes, cv=kfold)
     return scores.mean(), scores.std()
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Classify data')
+    parser.add_argument('filedata',
+                        metavar='filedata',
+                        type=str,
+                        help='file with feature data')
 
-    # Set to True to save data
-    save = False
-    if save:
-        feature_data = np.load("data.npy", allow_pickle=True)
-        store_data(feature_data)
+    # Execute the parse_args() method
+    args = parser.parse_args()
 
     # load data to process
-    train_data = np.load("train_data.npy", allow_pickle=True)
-    labels = np.load("labels_data.npy", allow_pickle=True)
-    labels = list(labels)
+    # data_ni_ta_tm_pp.npy
+    # filedata = "data_ni_ta_tm_pp.npy"
+    filedata = args.filedata
+
+    if not os.path.isfile(filedata):
+        print('The file does not exist')
+        sys.exit()
+
+    data = np.load(filedata, allow_pickle=True)
+    labels = data[:, -1]
+    labels = labels.tolist()
+    feats_data = np.array(data[:, :-1], dtype=np.float32)
     
     # 1: plant_nz
     # 2: water_nz 
@@ -58,15 +72,19 @@ if __name__ == '__main__':
     # 6: plant_mean
     # 7: hist_plant
     # 8: hist_water
-    values = [1, 2, 3, 4, 5, 6] 
+    values = [1, 2, 3, 4, 5, 6]
+    # Getting the number of iterations
+    n_iters = filedata.split("_")[1]
+    n_iters = int(n_iters)
     # features to consider in classification
     start = 0
-    stop = 100
+    stop = n_iters
     # number of iterations
-    limit = 100            
+    limit = n_iters            
 
-    len_previous_data = 600
-    len_hist = 40
+    len_previous_data = len(values) * n_iters
+    # 10 because of the number of bins
+    len_hist = 2 * 10
     for i in range(1, len(values) + 1):
         for c in combinations(values, i):
             idxs = []
@@ -76,16 +94,14 @@ if __name__ == '__main__':
                 idxs.extend(range(begin, end))
             len_idxs = len(idxs)
             idxs.extend(range(len_previous_data, len_previous_data + len_hist))
-            processed_data = np.array(train_data[:, idxs], dtype=np.float32)
-            score_mean, score_std = classify(processed_data, labels, "kNN")
-            print(f"kNN {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            score_mean, score_std = classify(processed_data, labels, "LDA")
+            train_data = feats_data[:, idxs]
+            # score_mean, score_std = classify(train_data, labels, "kNN")
+            # print(f"kNN {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(train_data, labels, "LDA")
             print(f"LDA {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            score_mean, score_std = classify(processed_data, labels, "Gaussian")
-            print(f"Gaussian {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            score_mean, score_std = classify(processed_data, labels, "Logistic")
-            print(f"Logistic {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            score_mean, score_std = classify(processed_data, labels, "RandomForest")
-            print(f"RandomForest {c} Classification: {score_mean:.2f} {score_std:.2f}")
-
- 
+            #  score_mean, score_std = classify(train_data, labels, "Gaussian")
+            #  print(f"Gaussian {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            #  score_mean, score_std = classify(train_data, labels, "Logistic")
+            #  print(f"Logistic {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            #  score_mean, score_std = classify(train_data, labels, "RandomForest")
+            #  print(f"RandomForest {c} Classification: {score_mean:.2f} {score_std:.2f}")

@@ -3,6 +3,7 @@ from simulation import simulation
 import os
 from collections import defaultdict
 from itertools import product
+from itertools import repeat
 import numpy as np
 import multiprocessing
 
@@ -49,24 +50,29 @@ def features(data, measure):
         count = np.count_nonzero(data, axis=(1, 2))
         count[count == 0] = 1
         return data.sum(axis=(1, 2)) / count
-    feats = {"sum": data.sum(axis=(1, 2)),
+
+    feats = {
+             "sum": data.sum(axis=(1, 2)),
              "max": data.max(axis=(1, 2)),
              "min": data.min(axis=(1, 2)),
              "count": np.count_nonzero(data, axis=(1, 2)),
              "mean_nz": mean_nz(data),
-             "mean": data.mean(axis=(1, 2))}
+             "mean": data.mean(axis=(1, 2)),
+              # number of bins by default is 10
+             "hist": np.histogram(data)[0]
+             }
     return feats[measure].tolist()
 
 
-def extract_features(data_feats):
+def extract_features(data_feats, n_iters, label):
     """
     Extract feature vector
-    data_feats correspond to 300 x n x m 
+    data_feats correspond to 3*n_iters x n x m 
     """
 
-    plant_data = data_feats[: 100, :, :]
-    water_data = data_feats[100: 200, :, :]
-    energy_data = data_feats[200: 300, :, :]
+    plant_data = data_feats[: n_iters, :, :]
+    water_data = data_feats[n_iters: 2*n_iters, :, :]
+    energy_data = data_feats[2*n_iters: 3*n_iters, :, :]
 
     feats_plant_nz = features(plant_data, "mean_nz")
     feats_water_nz = features(water_data, "mean_nz")
@@ -74,10 +80,13 @@ def extract_features(data_feats):
     feats_energy = features(energy_data, "sum")
     feats_count_plant = features(plant_data, "count")
     feats_plant = features(plant_data, "mean")
+    hist_plant = features(plant_data, "hist")
+    hist_water = features(water_data, "hist")
 
     feats = feats_plant_nz + feats_water_nz + feats_mass_plant + \
-            feats_energy + feats_count_plant + feats_plant
-    return feats
+            feats_energy + feats_count_plant + feats_plant + \
+            hist_plant + hist_water
+    return feats + [label]
 
 
 def collect_data(*params):
@@ -100,12 +109,16 @@ def store_data(feature_data, params):
     ni, ta, tm, pp = params
     feature_data = np.array(feature_data)
     labels = feature_data[:, 1]
-    np.save(f"label_{ni}_{ta}_{tm}_{pp}.npy", labels)
-
     data_to_process = feature_data[:, 0]
-    data_features = [extract_features(dt) for dt in data_to_process]
-    data = np.array(data_features, dtype=np.float32)
-    np.save(f"data_{ni}_{ta}_{tm}_{pp}.npy", data)
+
+    cpus = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(cpus)
+    data_feats = pool.starmap(extract_features, 
+                              zip(data_to_process, repeat(ni), labels))
+    pool.close()
+    pool.join()
+
+    np.save(f"data_{ni}_{ta}_{tm}_{pp}.npy", data_feats)
 
 
 if __name__ == '__main__':
@@ -117,7 +130,7 @@ if __name__ == '__main__':
     times_water_moves = [10, 20]
     plant_percentage = [10, 20, 40]
     params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
-    for ps in params:
+    for i, ps in enumerate(params):
         # Adapt data to match arguments of pool.starmap
         parameters = [(cls_, smp, *ps)
                       for cls_, smp in class_samples]
@@ -125,6 +138,8 @@ if __name__ == '__main__':
         feature_data = pool.starmap(collect_data, parameters)
         pool.close()
         pool.join()
+        print(f"Extracted {i}")
         # Store the data
         store_data(feature_data, ps)
+        print(f"Stored {i}")
     
