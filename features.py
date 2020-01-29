@@ -100,7 +100,7 @@ def collect_data(*params):
     return data_cls
 
 
-def store_data(feature_data, params):
+def store_data(pool, feature_data, params):
     # ni: num_iters
     # ta: times_add_water
     # tm: times_water_moves
@@ -111,12 +111,8 @@ def store_data(feature_data, params):
     labels = feature_data[:, 1]
     data_to_process = feature_data[:, 0]
 
-    cpus = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(cpus)
-    data_feats = pool.starmap(extract_features, 
+    data_feats = pool.starmap(extract_features,
                               zip(data_to_process, repeat(ni), labels))
-    pool.close()
-    pool.join()
 
     np.save(f"data_{ni}_{ta}_{tm}_{pp}.npy", data_feats)
 
@@ -130,16 +126,13 @@ if __name__ == '__main__':
     times_water_moves = [10, 20]
     plant_percentage = [10, 20, 40]
     params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
-    for i, ps in enumerate(params):
-        # Adapt data to match arguments of pool.starmap
-        parameters = [(cls_, smp, *ps)
-                      for cls_, smp in class_samples]
-        pool = multiprocessing.Pool(cpus)
-        feature_data = pool.starmap(collect_data, parameters)
-        pool.close()
-        pool.join()
-        print(f"Extracted {i}")
-        # Store the data
-        store_data(feature_data, ps)
-        print(f"Stored {i}")
-    
+    with multiprocessing.Pool(processes=cpus) as pool:
+        for i, ps in enumerate(params):
+            # Adapt data to match arguments of pool.starmap
+            parameters = [(cls_, smp, *ps)
+                          for cls_, smp in class_samples]
+            feature_data = pool.starmap(collect_data, parameters)
+            print(f"Extracted {i}")
+            # Store the data
+            store_data(pool, feature_data, ps)
+            print(f"Stored {i}")
