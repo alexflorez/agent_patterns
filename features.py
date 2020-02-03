@@ -126,7 +126,7 @@ if __name__ == '__main__':
     times_water_moves = [10, 20]
     plant_percentage = [10, 20, 40]
     params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
-    with multiprocessing.Pool(processes=cpus) as pool:
+    with multiprocessing.Pool(processes=cpus, maxtasksperchild=24) as pool:
         for i, ps in enumerate(params):
             # Adapt data to match arguments of pool.starmap
             parameters = [(cls_, smp, *ps)

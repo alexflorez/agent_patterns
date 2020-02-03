@@ -89,6 +89,18 @@ class Water:
                     if drops == 0:
                         break
 
+    def reduce_water(self, drops, xs, ys):
+        """
+        Reduce the height of the water
+        """
+        while drops > 0:
+            for x, y in zip(xs, ys):
+                if self.height[x, y] > 0:
+                    self.height[x, y] -= 1
+                    drops -= 1
+                    if drops == 0:
+                        break
+
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.height!r}>'

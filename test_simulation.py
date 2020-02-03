@@ -62,6 +62,6 @@ def test_plant_grows(create_plant):
     plant = create_plant
     plant.seed(10)
     plant.water.move()
-    plant.grow()
+    plant.grow_by_points()
     assert np.any(plant.energy > 0.5)
 

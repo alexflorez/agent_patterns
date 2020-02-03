@@ -50,7 +50,7 @@ class Plant:
             # Vertical and horizontal growth
             self.adjust_seeds(x, y)
 
-    def grow(self):
+    def grow_by_points(self):
         """
         Assess the plant growth according to
         the amount of water around a n x n region.
@@ -63,7 +63,7 @@ class Plant:
                 # Update water height
                 self.water.adjust_water(qty_water, ixs, jys)
             else:   
-                # check if neigbors have access to water
+                # check if neighbors have access to water
                 neigh = self.neighbors(x, y)
                 for i, j in neigh:
                     nxs, nys, qty_water = self.qty_water_region(i, j)
@@ -118,8 +118,62 @@ class Plant:
                 xpts, ypts = self.seeds[ixs, jys].nonzero()
                 nodes = {(ixs[i, j], jys[i, j]) for i, j in zip(xpts, ypts)}
                 stack.extend(nodes - visited)
-        visited.remove(start)
+        # visited.remove(start)
         return visited
+
+    def find_groups(self):
+        xs, ys = self.seeds.nonzero()
+        visited = np.zeros_like(self.seeds, dtype=np.uint8)
+        groups = []
+        for x, y in zip(xs, ys):
+            if visited[x, y] == 0:
+                neighs = self.neighbors(x, y)
+                neighs |= {(x, y)}
+                ixs, jys = zip(*neighs)
+                visited[ixs, jys] = 1
+                groups.append(neighs)
+        return groups
+
+    def water_region(self, group):
+        water = set()
+        for x, y in group:
+            ixs, jys = self.surface.region_idxs(x, y)
+            water |= set(zip(ixs.ravel(), jys.ravel()))
+        return water
+
+    def hv_grow(self, qty, x, y):
+        """
+        Returns the quantity of water used
+        """
+        if qty >= self.GROWTH:
+            self.horiz_vert_grow(self.GROWTH, x, y)
+            return self.GROWTH
+        else:
+            self.horiz_vert_grow(qty, x, y)
+            return qty
+
+    def grow_by_groups(self):
+        groups_plant = self.find_groups()
+        for group in groups_plant:
+            water = self.water_region(group)
+            real_water = [(x, y) for x, y in water if self.water.height[x, y]]
+            if real_water:
+                xs, ys = zip(*real_water)
+                region_water = self.water.height[xs, ys]
+                qty_water = region_water.sum()
+            else:
+                qty_water = 0
+
+            for x, y in group:
+                if qty_water:
+                    qty_decreased = self.hv_grow(qty_water, x, y)
+                    self.water.reduce_water(qty_decreased, xs, ys)
+                    qty_water -= qty_decreased
+                else:
+                    self.energy[x, y] -= self.DELTA_DECREASE
+                    qty_decrease = self.GROWTH * (self.seeds[x, y] - 1)
+                    if self.energy[x, y] <= qty_decrease:
+                        self.seeds[x, y] -= 1
 
     def __repr__(self):
         class_name = type(self).__name__

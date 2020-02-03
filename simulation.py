@@ -32,7 +32,7 @@ def simulation(parameters):
         energy_data[i] = plant.energy
         for _ in range(times_water_moves):
             water.move()
-        plant.grow()
+        plant.grow_by_groups()
         if i % times_add_water == 0:
             water.add()
     return plant_data, water_data, energy_data
@@ -76,7 +76,7 @@ def check_growth(parameters):
     water.set_data(wt)
     for i in range(num_iters):
         plant_data[i] = plant.seeds
-        plant.grow()
+        plant.grow_by_groups()
         water.move()
     return plant_data
 
