@@ -1,11 +1,17 @@
 from simulation import simulation
 
 import os
+from pathlib import Path
 from collections import defaultdict
 from itertools import product
 from itertools import repeat
 import numpy as np
 import multiprocessing
+
+
+DIR = 'bases/models'
+models_dir = Path(DIR)
+models_dir.mkdir(parents=True, exist_ok=True)
 
 
 def read_data(path_base):
@@ -69,10 +75,10 @@ def extract_features(data_feats, n_iters, label):
     Extract feature vector
     data_feats correspond to 3*n_iters x n x m 
     """
-
-    plant_data = data_feats[: n_iters, :, :]
-    water_data = data_feats[n_iters: 2*n_iters, :, :]
-    energy_data = data_feats[2*n_iters: 3*n_iters, :, :]
+    n = n_iters
+    plant_data = data_feats[: n, :, :]
+    water_data = data_feats[n: 2 * n, :, :]
+    energy_data = data_feats[2 * n: 3 * n, :, :]
 
     feats_plant_nz = features(plant_data, "mean_nz")
     feats_water_nz = features(water_data, "mean_nz")
@@ -96,8 +102,10 @@ def collect_data(*params):
     name_class, *rest_params = params
     plant_data, water_data, energy_data = simulation(rest_params)
     data = np.concatenate((plant_data, water_data, energy_data))
-    data_cls = [data, name_class]
-    return data_cls
+    filename, *rest = rest_params
+    name = Path(filename).stem
+    path = models_dir.joinpath(f"{name}.npy")
+    np.save(path, data)
 
 
 def store_data(pool, feature_data, params):
@@ -121,18 +129,14 @@ if __name__ == '__main__':
     path_base = "bases/brodatz"
     cpus = multiprocessing.cpu_count()
     class_samples = read_data(path_base)
-    num_iters = [50, 100]
-    times_add_water = [10, 20]
-    times_water_moves = [10, 20]
-    plant_percentage = [10, 20, 40]
+    num_iters = [100]
+    times_add_water = [10]
+    times_water_moves = [10]
+    plant_percentage = [10]
     params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
-    with multiprocessing.Pool(processes=cpus, maxtasksperchild=24) as pool:
+    with multiprocessing.Pool(processes=cpus, maxtasksperchild=16) as pool:
         for i, ps in enumerate(params):
             # Adapt data to match arguments of pool.starmap
             parameters = [(cls_, smp, *ps)
                           for cls_, smp in class_samples]
-            feature_data = pool.starmap(collect_data, parameters)
-            print(f"Extracted {i}")
-            # Store the data
-            store_data(pool, feature_data, ps)
-            print(f"Stored {i}")
+            pool.starmap(collect_data, parameters)

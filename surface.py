@@ -2,6 +2,8 @@ import functools
 import imghdr
 import numpy as np
 from skimage import io
+from skimage import transform
+from scipy.ndimage import gaussian_filter
 
 
 class Surface:
@@ -21,6 +23,7 @@ class Surface:
         The image is converted into grayscale.
         """
         self.level = io.imread(filename, as_gray=True)
+        self.level = transform.resize(self.level, (224, 224))
         self.level = self.level * 255
         self.level = self.level.astype(int)
         self.x_idxs, self.y_idxs = self.idxs_region()
@@ -41,6 +44,9 @@ class Surface:
         self.level = np.array(self.level * percentage // 100,
                               dtype=int)
     
+    def filter_level(self):
+        self.level = gaussian_filter(self.level, sigma=3)
+
     def idxs_region(self):
         rows, columns = self.level.shape
         m = self.n_region // 2
@@ -57,8 +63,8 @@ class Surface:
         Return the indexes of the region.
         """
         n = self.n_region
-        ixs = self.x_idxs[x: x + n, x: x + n]
-        jys = self.y_idxs[y: y + n, y: y + n]
+        ixs = self.x_idxs[x: x + n, y: y + n]
+        jys = self.y_idxs[x: x + n, y: y + n]
         return ixs, jys
 
     def __repr__(self):
