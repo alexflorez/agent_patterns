@@ -9,10 +9,11 @@ plt.style.use('seaborn')
 
 feat_data = np.load("feature_data.npy", allow_pickle=True)
 # feats_plant + feats_water + feats_energy + [name_class]
-plant = np.array(feat_data[:, : 100], dtype=np.float32)
-water = np.array(feat_data[:, 100: 200], dtype=np.float32)
-energy = np.array(feat_data[:, 200: 300], dtype=np.float32)
-mass = np.array(feat_data[:, 300: 400], dtype=np.float32)
+n = 100
+plant = np.array(feat_data[:, : n], dtype=np.float32)
+water = np.array(feat_data[:, n: 2*n], dtype=np.float32)
+energy = np.array(feat_data[:, 2*n: 3*n], dtype=np.float32)
+mass = np.array(feat_data[:, 3*n: 4*n], dtype=np.float32)
 cls_ = feat_data[:, -1].tolist()
 
 # number of samples in this particular dataset

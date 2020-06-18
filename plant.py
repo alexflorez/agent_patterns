@@ -22,7 +22,7 @@ class Plant:
         Add seeds to the surface level.
         Seeds are added over the surface in percentages.
         """
-        #random.seed(21)
+        # random.seed(21)
         percent = self.seeds.size * percent // 100
         choices = random.sample(range(self.seeds.size), percent)
         xs, ys = np.unravel_index(choices, self.seeds.shape)
@@ -118,6 +118,7 @@ class Plant:
                 xpts, ypts = self.seeds[ixs, jys].nonzero()
                 nodes = {(ixs[i, j], jys[i, j]) for i, j in zip(xpts, ypts)}
                 stack.extend(nodes - visited)
+        # comment for grow by groups
         # visited.remove(start)
         return visited
 

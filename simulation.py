@@ -27,12 +27,12 @@ def simulation(parameters):
     water_data = np.zeros((num_iters, rows, columns), dtype=np.uint8)
     energy_data = np.zeros((num_iters, rows, columns), dtype=np.float32)
     for i in range(num_iters):
-        plant_data[i] = plant.seeds
-        water_data[i] = water.height
-        energy_data[i] = plant.energy
         for _ in range(times_water_moves):
             water.move()
         plant.grow_by_groups()
+        plant_data[i] = plant.seeds
+        water_data[i] = water.height
+        energy_data[i] = plant.energy
         if i % times_add_water == 0:
             water.add()
     return plant_data, water_data, energy_data
@@ -92,7 +92,7 @@ def plot_data(data):
     seeds_plt = plt.imshow(data[val_init], extent=[0, columns, 0, rows],
                            cmap=plt.cm.get_cmap('viridis', max_val), alpha=0.8, interpolation='nearest')
     plt.colorbar(ticks=range(max_val), label='Height of plants')
-    plt.clim(-0.5, max_val-0.5)
+    plt.clim(-0.5, max_val+0.5)
     plt.axis(aspect='image')
     plt.axis('off')
 

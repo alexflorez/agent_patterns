@@ -3,7 +3,6 @@ from simulation import simulation
 import os
 from pathlib import Path
 from collections import defaultdict
-from itertools import product
 from itertools import repeat
 import numpy as np
 import multiprocessing
@@ -129,14 +128,12 @@ if __name__ == '__main__':
     path_base = "bases/brodatz"
     cpus = multiprocessing.cpu_count()
     class_samples = read_data(path_base)
-    num_iters = [100]
-    times_add_water = [10]
-    times_water_moves = [10]
-    plant_percentage = [10]
-    params = product(num_iters, times_add_water, times_water_moves, plant_percentage)
-    with multiprocessing.Pool(processes=cpus, maxtasksperchild=16) as pool:
-        for i, ps in enumerate(params):
-            # Adapt data to match arguments of pool.starmap
-            parameters = [(cls_, smp, *ps)
-                          for cls_, smp in class_samples]
-            pool.starmap(collect_data, parameters)
+    num_iters = 100
+    times_add_water = 10
+    times_water_moves = 10
+    plant_percentage = 10
+    params = (num_iters, times_add_water, times_water_moves, plant_percentage)
+
+    parameters = [(*cs, *params) for cs in class_samples]
+    with multiprocessing.Pool(processes=cpus, maxtasksperchild=2) as pool:
+        pool.starmap(collect_data, parameters)

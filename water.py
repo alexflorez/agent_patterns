@@ -4,7 +4,7 @@ import numpy as np
 
 
 @jit(nopython=True, fastmath=True)
-def min_idxs(region, ixs, jys, n):
+def fmin_idxs(region, ixs, jys, n):
     # Randomly choose a value less than the region's center
     c = n // 2
     items, jtems = np.nonzero(region < region[c, c])
@@ -15,6 +15,11 @@ def min_idxs(region, ixs, jys, n):
         return ixs[i, j], jys[i, j]
     else:
         return ixs[c, c], jys[c, c]
+
+@jit(nopython=True, fastmath=True)
+def min_idxs(region, ixs, jys, n):
+    i, j = divmod(region.argmin(), region.shape[1])
+    return ixs[i, j], jys[i, j]
 
 
 class Water:
