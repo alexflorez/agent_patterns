@@ -113,15 +113,15 @@ def data_inv_pyramid(rows, cols):
 
 
 if __name__ == '__main__':
-    rows = 10
-    cols = 10
+    x = 10
+    y = 10
 
-    slope = data_slope(rows, cols)
-    half_v = data_half_v(rows, cols)
-    full_v = data_full_v(rows, cols)
-    pyramid = data_pyramid(rows, cols)
-    inv_pyramid = data_inv_pyramid(rows, cols)
-    full_vinv = data_full_vinv(rows, cols)
+    slope = data_slope(x, y)
+    half_v = data_half_v(x, y)
+    full_v = data_full_v(x, y)
+    pyramid = data_pyramid(x, y)
+    inv_pyramid = data_inv_pyramid(x, y)
+    full_vinv = data_full_vinv(x, y)
     
     np.save("images/slope.npy", slope)
     # np.save("half_v.npy", half_v)
@@ -138,5 +138,4 @@ if __name__ == '__main__':
         ax.yaxis.set_major_locator(plt.NullLocator())
         ax.imshow(imgs[i], cmap="viridis")
         ax.set_xlabel(names[i])
-
     plt.show()

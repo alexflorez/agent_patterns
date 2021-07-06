@@ -1,111 +1,119 @@
-from numba import jit
-import random
 import numpy as np
 
+import util
+from raindrop import Raindrop
+from environment import Environment, Point, shape_cross
 
-@jit(nopython=True, fastmath=True)
-def fmin_idxs(region, ixs, jys, n):
-    # Randomly choose a value less than the region's center
-    c = n // 2
-    items, jtems = np.nonzero(region < region[c, c])
-    nitems = items.size
-    if nitems:
-        k = random.randint(0, nitems - 1)
-        i, j = items[k], jtems[k]
-        return ixs[i, j], jys[i, j]
-    else:
-        return ixs[c, c], jys[c, c]
-
-@jit(nopython=True, fastmath=True)
-def min_idxs(region, ixs, jys, n):
-    i, j = divmod(region.argmin(), region.shape[1])
-    return ixs[i, j], jys[i, j]
+ENERGY = 10
 
 
 class Water:
-    def __init__(self, surface):
-        self.surface = surface
-        self.height = np.zeros_like(surface.level)
+    def __init__(self, size):
+        self.level = np.zeros(size, dtype=int)
+        self.energy = np.zeros(size, dtype=int)
+        self.add()
+        self.space = None
 
-    def add(self, percent=100):
-        """
-        Add water to the surface level.
-        Water can be added in percentages.
-        """
-        if percent == 100:
-            self.height = self.height + 1
-            return
-        percent = self.height.size * percent // 100
-        choices = random.sample(range(self.height.size), percent)
-        xs, ys = np.unravel_index(choices, self.height.shape)
-        self.height[xs, ys] = self.height[xs, ys] + 1
-
-    def set_points(self, xs, ys):
-        self.height[xs, ys] = 1
-
-    def set_data(self, data):
-        self.height = data
-
-    def drop(self, percent=50):
-        xnz, ynz = self.height.nonzero()
-        nz = len(xnz)
-        qty_drop = nz * percent // 100
-        ix = random.sample(range(nz), qty_drop)
-        self.height[xnz[ix], ynz[ix]] -= 1
-
-    def minimal_idxs(self, tmp_height, x, y):
-        """
-        Find the minimum value indexes of a n x n region.
-        If there is more than a minimum value, one is chosen at random.
-        """
-        # region surface and region height water
-        n = self.surface.n_region
-        ixs, jys = self.surface.region_idxs(x, y)
-        reg_sf = self.surface.level[ixs, jys]
-        reg_wt = tmp_height[ixs, jys]
-        region = reg_sf + reg_wt
-        i, j = min_idxs(region, ixs, jys, n)
-        return i, j
+    def add(self):
+        # np.random.seed(23)
+        values = np.random.randint(2, size=self.level.shape)
+        self.level += values
+        self.energy += values * ENERGY
 
     def move(self):
-        """
-        Update the position and height of the water.
-        """
-        nw_height = np.array(self.height)
-        xnz, ynz = self.height.nonzero()
-        for x, y in zip(xnz, ynz):
-            i, j = self.minimal_idxs(nw_height, x, y)
-            if (i, j) == (x, y):
-                continue
-            nw_height[x, y] -= 1
-            nw_height[i, j] += 1
-        self.height = nw_height
+        xs, ys = self.level.nonzero()
+        for i, j in zip(xs, ys):
+            # run k times according to the level
+            for k in range(self.level[i, j]):
+                point = Point(i, j)
+                energy = self.energy[point] - (self.level[point] - 1) * ENERGY
+                self.energy[point] -= energy
+                self.level[point] -= 1
+                raindrop = Raindrop(self.space, point, energy)
+                raindrop.move()
+                self.update(raindrop)
 
-    def adjust_water(self, drops, ixs, jys):
-        """
-        Adjust the height of the water, subtract the drops
-        until the specified amount is reduced.
-        """
-        while drops > 0:
-            for x, y in zip(ixs.ravel(), jys.ravel()):
-                if self.height[x, y] > 0:
-                    self.height[x, y] -= 1
-                    drops -= 1
-                    if drops == 0:
-                        break
+    def update(self, raindrop):
+        if raindrop.energy > 0:
+            new_pos = raindrop.position
+            self.energy[new_pos] += raindrop.energy
+            self.level[new_pos] += 1
 
-    def reduce_water(self, drops, xs, ys):
-        """
-        Reduce the height of the water
-        """
-        while drops > 0:
-            for x, y in zip(xs, ys):
-                if self.height[x, y] > 0:
-                    self.height[x, y] -= 1
-                    drops -= 1
-                    if drops == 0:
+    def allowed_height(self, point, height):
+        idxs = shape_cross(point, self.level.shape)
+        # including point itself
+        idxs += [point]
+        # filter neighbors with water
+        idxs = [xy for xy in idxs if self.level[xy]]
+        drops = []
+        # height of this point, i.e. of the plant
+        h_point = self.space.surface[point].astype(int)
+        for neigh in idxs:
+            h_neigh = self.space.surface[neigh].astype(int)
+            if h_point > h_neigh:
+                h_point += self.level[point]
+                h_neigh += self.level[neigh]
+            # w_point = self.level[point]
+            # w_neigh = self.level[neigh]
+            if abs(h_point - h_neigh) <= height:
+                drops.append(neigh)
+        return drops
+
+    def collect(self, points, height):
+        """Find drops that contain water around given points"""
+        already = np.zeros_like(self.level)
+        water_region = set()
+        for point in points:
+            drops = self.allowed_height(point, height)
+            for d in drops:
+                if not already[d]:
+                    grp = util.groups(d, self.level)
+                    ixs, jys = zip(*grp)
+                    already[ixs, jys] = 1
+                    water_region |= grp
+        return water_region
+
+    def quantity(self, drops):
+        """Returns the quantity of water around a region of drops"""
+        if not drops:
+            return 0
+        xw, yw = zip(*drops)
+        qty = self.level[xw, yw].sum()
+        return qty
+
+    def reduce(self, points, n_drops):
+        """reduce n_drops of water around points"""
+        while n_drops:
+            for point in points:
+                if self.level[point]:
+                    self.level[point] -= 1
+                    n_drops -= 1
+                    if n_drops == 0:
                         break
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f'{class_name}\n<{self.height!r}>'
+        return f'{class_name}\n<{self.level!r}>'
+
+
+if __name__ == "__main__":
+    file = "images/tinybeans.jpg"
+    # file = "images/c001_004.png"
+    # image = util.read(file, resize=False)
+
+    image = np.array([[1, 2, 4, 3, 2, 1],
+                      [5, 2, 2, 1, 7, 1],
+                      [2, 2, 1, 7, 3, 2],
+                      [8, 6, 1, 3, 2, 4],
+                      [2, 1, 2, 5, 2, 3],
+                      [7, 5, 2, 2, 1, 4]])
+    water = Water(image.shape)
+    space = Environment(image, water)
+    water.space = space
+    iterations = 10
+    for _ in range(iterations):
+        water.move()
+        # water.add()
+        xl, yl = np.nonzero(water.level)
+        xe, ye = np.nonzero(water.energy)
+        assert np.all(xl == xe) and np.all(yl == ye)
