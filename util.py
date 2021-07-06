@@ -4,6 +4,8 @@ from skimage import io
 from skimage import transform
 from skimage.util import img_as_ubyte
 from collections import deque
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
 from environment import shape_cross
 
@@ -37,3 +39,32 @@ def groups(point, surface):
         visited.extend(ns - neighbors)
         neighbors |= ns
     return neighbors
+
+
+def plot_data(data):
+    data = np.array(data)
+    num_iters, rows, columns = data.shape
+    # max value of seeds over surface
+    max_val = data.max() + 1
+    fig, ax = plt.subplots()
+    plt.subplots_adjust(left=0.10, bottom=0.25)
+    val_init = num_iters // 2
+    # Discrete color map with plt.cm.get_cmap()
+    seeds_plt = plt.imshow(data[val_init], extent=[0, columns, 0, rows],
+                           cmap=plt.cm.get_cmap('viridis', max_val), alpha=0.8, interpolation='nearest')
+    plt.colorbar(ticks=range(max_val), label='Height of plants')
+    plt.clim(-0.5, max_val+0.5)
+    # plt.axis(aspect='image')
+    plt.axis('off')
+
+    ax_steps = plt.axes([0.20, 0.07, 0.70, 0.04])
+    slider_steps = Slider(ax_steps, 'Steps', 0, num_iters - 1,
+                          valinit=val_init, valstep=1)
+
+    def update(val):
+        step = slider_steps.val
+        step = int(step)
+        seeds_plt.set_data(data[step])
+
+    slider_steps.on_changed(update)
+    plt.show()
