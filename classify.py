@@ -1,13 +1,8 @@
-from features import extract_features
-from features import store_data
-
 from itertools import combinations
 import argparse
-import os
-import sys
-import numpy as np
+import h5py
 
-from sklearn import preprocessing
+from xgboost import XGBClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
@@ -16,75 +11,60 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
 
-def classify(train_data, classes, name):
-    """
-    Perform a classification using k-Nearest Neighbors 
-    with 10-fold cross-validation scheme
-    """
-    scaler = preprocessing.StandardScaler()
-    scaled_data = scaler.fit_transform(train_data)
-
+def classify(features, classes, name_classifier):
     classifiers = {'kNN': KNeighborsClassifier(n_neighbors=3),
                    'LDA': LinearDiscriminantAnalysis(solver='lsqr', 
                                                      shrinkage='auto'),
                    'Gaussian': GaussianNB(),
+                   'xgboost': XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
                    'Logistic': LogisticRegression(solver='lbfgs', multi_class='auto', 
                                                   max_iter=5000, n_jobs=-1),
                    'RandomForest': RandomForestClassifier(n_estimators=100, 
                                                           max_depth=10,
                                                           n_jobs=-1)}
-    # kfold: not greater than the number of members in each class
-    classifier = classifiers[name]
-    kfold = 4
-    scores = cross_val_score(classifier, scaled_data, classes, cv=kfold)
+    classifier = classifiers[name_classifier]
+    kfold = 10
+    scores = cross_val_score(classifier, features, classes, cv=kfold)
     return scores.mean(), scores.std()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Classify data')
     parser.add_argument('filedata',
-                        metavar='filedata',
+                        metavar='datafile',
                         type=str,
                         help='file with feature data')
 
     # Execute the parse_args() method
     args = parser.parse_args()
 
-    # load data to process
-    # data_ni_ta_tm_pp.npy
-    # filedata = "data_ni_ta_tm_pp.npy"
-    filedata = args.filedata
+    # load data to process hdf5 format
+    datafile = args.filedata
+    with h5py.File(datafile, 'r') as f:
+        feats = f["features"][:]
+        labels = f["labels"][:]
 
-    if not os.path.isfile(filedata):
-        print('The file does not exist')
-        sys.exit()
-
-    data = np.load(filedata, allow_pickle=True)
-    labels = data[:, -1]
-    labels = labels.tolist()
-    feats_data = np.array(data[:, :-1], dtype=np.float32)
-    
-    # 1: plant_nz
-    # 2: water_nz 
-    # 3: plant_mass 
-    # 4: energy
-    # 5: plant_count
-    # 6: plant_mean
-    # 7: hist_plant
-    # 8: hist_water
-    values = [1, 2, 3, 4, 5, 6]
-    # Getting the number of iterations
-    n_iters = filedata.split("_")[1]
-    n_iters = int(n_iters)
-    # features to consider in classification
+    # Features
+    # 1. plant_count
+    # 2. water_count
+    # 3. energy_count
+    # 4. plant_sum
+    # 5. water_sum
+    # 6. energy_sum
+    # 7. plant_max
+    # 8. water_max
+    # 9. energy_max
+    # features to use in classification
+    values = [2, 5, 6]
+    n_iters = 100
+    # Indexes to use a sub range of features
     start = 0
     stop = n_iters
-    # number of iterations
     limit = n_iters            
 
     len_previous_data = len(values) * n_iters
-    # 10 because of the number of bins
-    len_hist = 2 * 10
+    n_bins = 10
+    len_hist = 3 * n_bins
     for i in range(1, len(values) + 1):
         for c in combinations(values, i):
             idxs = []
@@ -94,14 +74,16 @@ if __name__ == '__main__':
                 idxs.extend(range(begin, end))
             len_idxs = len(idxs)
             idxs.extend(range(len_previous_data, len_previous_data + len_hist))
-            train_data = feats_data[:, idxs]
-            # score_mean, score_std = classify(train_data, labels, "kNN")
-            # print(f"kNN {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            train_data = feats[:, idxs]
+            score_mean, score_std = classify(train_data, labels, "kNN")
+            print(f"kNN {c} Classification: {score_mean:.2f} {score_std:.2f}")
             score_mean, score_std = classify(train_data, labels, "LDA")
             print(f"LDA {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            #  score_mean, score_std = classify(train_data, labels, "Gaussian")
-            #  print(f"Gaussian {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            #  score_mean, score_std = classify(train_data, labels, "Logistic")
-            #  print(f"Logistic {c} Classification: {score_mean:.2f} {score_std:.2f}")
-            #  score_mean, score_std = classify(train_data, labels, "RandomForest")
-            #  print(f"RandomForest {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(train_data, labels, "xgboost")
+            print(f"XGBoost {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(train_data, labels, "Gaussian")
+            print(f"Gaussian {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(train_data, labels, "Logistic")
+            print(f"Logistic {c} Classification: {score_mean:.2f} {score_std:.2f}")
+            score_mean, score_std = classify(train_data, labels, "RandomForest")
+            print(f"RandomForest {c} Classification: {score_mean:.2f} {score_std:.2f}")
