@@ -83,23 +83,3 @@ class Plant:
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name} <{self.level!r}>'
-
-
-if __name__ == "__main__":
-    file = "images/c001_004.png"
-    image = util.read(file)
-    water = Water(image.shape)
-    plant = Plant(image.shape)
-    space = Environment(image, water)
-    water.space = space
-    plant.space = space
-
-    iters = 100
-    import random
-    for i in range(iters):
-        water.move()
-        plant.grow(water)
-        # if random.randint(False, True):
-        if (i+1) % 10 == 0:
-            print(f"Iteration {i+1}")
-            water.add()

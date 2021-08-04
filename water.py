@@ -1,8 +1,7 @@
 import numpy as np
 
 import util
-from raindrop import Raindrop
-from environment import Environment, Point, shape_cross
+from environment import Environment, shape_cross
 
 ENERGY = 10
 
@@ -15,7 +14,7 @@ class Water:
         self.space = None
 
     def add(self):
-        # np.random.seed(23)
+        np.random.seed(23)
         values = np.random.randint(2, size=self.level.shape)
         self.level += values
         self.energy += values * ENERGY
@@ -25,19 +24,16 @@ class Water:
         for i, j in zip(xs, ys):
             # run k times according to the level
             for k in range(self.level[i, j]):
-                point = Point(i, j)
+                point = (i, j)
                 energy = self.energy[point] - (self.level[point] - 1) * ENERGY
                 self.energy[point] -= energy
                 self.level[point] -= 1
-                raindrop = Raindrop(self.space, point, energy)
-                raindrop.move()
-                self.update(raindrop)
-
-    def update(self, raindrop):
-        if raindrop.energy > 0:
-            new_pos = raindrop.position
-            self.energy[new_pos] += raindrop.energy
-            self.level[new_pos] += 1
+                new_pos = self.space.next_position(point)
+                # evaporation while moving
+                self.energy[new_pos] += energy - 1
+                self.level[new_pos] += 1
+                if self.energy[new_pos] == 0:
+                    self.level[new_pos] -= 1
 
     def allowed_height(self, point, height):
         idxs = shape_cross(point, self.level.shape)
@@ -47,9 +43,9 @@ class Water:
         idxs = [xy for xy in idxs if self.level[xy]]
         drops = []
         # height of this point, i.e. of the plant
-        h_point = self.space.surface[point].astype(int)
+        h_point = self.space.surface[point]
         for neigh in idxs:
-            h_neigh = self.space.surface[neigh].astype(int)
+            h_neigh = self.space.surface[neigh]
             if h_point > h_neigh:
                 h_point += self.level[point]
                 h_neigh += self.level[neigh]
@@ -94,26 +90,3 @@ class Water:
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.level!r}>'
-
-
-if __name__ == "__main__":
-    file = "images/tinybeans.jpg"
-    # file = "images/c001_004.png"
-    # image = util.read(file, resize=False)
-
-    image = np.array([[1, 2, 4, 3, 2, 1],
-                      [5, 2, 2, 1, 7, 1],
-                      [2, 2, 1, 7, 3, 2],
-                      [8, 6, 1, 3, 2, 4],
-                      [2, 1, 2, 5, 2, 3],
-                      [7, 5, 2, 2, 1, 4]])
-    water = Water(image.shape)
-    space = Environment(image, water)
-    water.space = space
-    iterations = 10
-    for _ in range(iterations):
-        water.move()
-        # water.add()
-        xl, yl = np.nonzero(water.level)
-        xe, ye = np.nonzero(water.energy)
-        assert np.all(xl == xe) and np.all(yl == ye)
