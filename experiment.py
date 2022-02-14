@@ -15,23 +15,27 @@ import argparse
 def process_agent(file, label, configuration, destiny):
     confExperiment = configuration["experiment"]
 
-    ITERATIONS = confExperiment.getint("Iterations")
-    PERCENT_PLANT = confExperiment.getint("PercentagePlant")
-    PERCENT_WATER = confExperiment.getint("PercentageWater")
-    ITERATIONS_ADD_WATER = confExperiment.getint("IterationsAddWater")
-    EVAPORATE = configuration.getboolean("water", "Evaporate")
+    ITERATIONS = confExperiment.getint("Iterations")                    # 7
+    PERCENT_PLANT = confExperiment.getint("PercentagePlant")            # 8
+    PERCENT_WATER = confExperiment.getint("PercentageWater")            # 9
+    ITERATIONS_ADD_WATER = confExperiment.getint("IterationsAddWater")  # 10
+    EVAPORATE = configuration.getboolean("water", "Evaporate")          # 2
 
     confWater = configuration["water"]
-    ENERGY_WATER = confWater.getint("InitialEnergy")
+    ENERGY_WATER = confWater.getint("InitialEnergy")                    # 1
     confPlant = config["plant"]
-    POINTS_HEIGHT = confPlant.getint("PointsHeight")
-    DROPS_TO_GROW = confPlant.getint("DropsToGrow")
+    ENERGY_PLANT = confPlant.getint("PlantInitialEnergy")               # 3
+    POINTS_HEIGHT = confPlant.getint("PointsHeight")                    # 4
+    GROW_ENERGY = confPlant.getint("GrowingEnergy")                     # 5
+    DROPS_TO_GROW = confPlant.getint("DropsToGrow")                     # 6
     image = util.read(file)
     water = Water(image.shape, EVAPORATE)
     water.INIT_ENERGY = ENERGY_WATER
     water.add(PERCENT_WATER)
     plant = Plant(image.shape)
+    plant.INIT_ENERGY = ENERGY_PLANT
     plant.POINTS_HEIGHT = POINTS_HEIGHT
+    plant.GROW_ENERGY = GROW_ENERGY
     plant.DROPS_TO_GROW = DROPS_TO_GROW
     plant.add(PERCENT_PLANT)
     env = Environment(image)
