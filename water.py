@@ -1,66 +1,97 @@
 import numpy as np
 
 import util
-from environment import Environment, shape_cross
-
-ENERGY = 10
 
 
 class Water:
-    def __init__(self, size):
-        self.level = np.zeros(size, dtype=int)
-        self.energy = np.zeros(size, dtype=int)
-        self.add()
-        self.space = None
+    INIT_LEVEL = 1
+    INIT_ENERGY = 10
+    MOVE_LEVEL = 1
+    MOVE_ENERGY = 1
 
-    def add(self):
-        np.random.seed(23)
-        values = np.random.randint(2, size=self.level.shape)
-        self.level += values
-        self.energy += values * ENERGY
+    def __init__(self, shape, evaporate=False):
+        self.level = np.zeros(shape, dtype=int)
+        self.energy = np.zeros(shape, dtype=int)
+        self.evaporate = evaporate
 
-    def move(self):
+    def add(self, percent):
+        shape = self.level.shape
+        xs, ys = util.fill_region(shape, percent)
+        self.level[xs, ys] += self.INIT_LEVEL
+        self.energy[xs, ys] += self.INIT_ENERGY
+
+    def add_values(self, positions, value):
+        # positions is a list of points
+        # [(0, 1), (1, 2), (2, 3)]
+        x, y = zip(*positions)
+        self.level[x, y] += value * self.INIT_LEVEL
+        self.energy[x, y] += value * self.INIT_ENERGY
+
+    def move(self, space):
+        """ Move drops of water over level """
         xs, ys = self.level.nonzero()
-        for i, j in zip(xs, ys):
-            # run k times according to the level
-            for k in range(self.level[i, j]):
-                point = (i, j)
-                energy = self.energy[point] - (self.level[point] - 1) * ENERGY
-                self.energy[point] -= energy
-                self.level[point] -= 1
-                new_pos = self.space.next_position(point)
-                # evaporation while moving
-                self.energy[new_pos] += energy - 1
-                self.level[new_pos] += 1
-                if self.energy[new_pos] == 0:
-                    self.level[new_pos] -= 1
+        for position in zip(xs, ys):
+            if self.evaporate:
+                self.step_evaporate(space, position)
+            else:
+                self.step(space, position)
 
-    def allowed_height(self, point, height):
-        idxs = shape_cross(point, self.level.shape)
+    def step(self, space, position):
+        level = self.level[position]
+        for _ in range(level):
+            new_position = space.next_position(position)
+            self.level[position] -= self.MOVE_LEVEL
+            self.level[new_position] += self.MOVE_LEVEL
+
+    def step_evaporate(self, space, position):
+        divided = self.distribute_energy(position)
+        for part_energy in divided:
+            self.level[position] -= self.MOVE_LEVEL
+            self.energy[position] -= part_energy
+
+            tmp_energy = (part_energy - self.MOVE_ENERGY)
+            if tmp_energy > 0:
+                new_position = space.next_position(position)
+                self.level[new_position] += self.MOVE_LEVEL
+                self.energy[new_position] += tmp_energy
+
+    def distribute_energy(self, position):
+        energy = self.energy[position]
+        level = self.level[position]
+        divided = []
+        k = energy // level
+        r = energy % level
+        for i in range(level):
+            part = k
+            if i == 0:
+                part += r
+            divided.append(part)
+        return divided
+
+    def allowed_height(self, space, point, height):
+        indexes = util.shape_cross(point, self.level.shape)
         # including point itself
-        idxs += [point]
+        indexes += [point]
         # filter neighbors with water
-        idxs = [xy for xy in idxs if self.level[xy]]
+        indexes = [xy for xy in indexes if self.level[xy]]
         drops = []
-        # height of this point, i.e. of the plant
-        h_point = self.space.surface[point]
-        for neigh in idxs:
-            h_neigh = self.space.surface[neigh]
-            if h_point > h_neigh:
+        # height of plant at this point
+        h_point = space.level[point]
+        for neighbor in indexes:
+            h_neighbor = space.level[neighbor]
+            if h_point > h_neighbor:
                 h_point += self.level[point]
-                h_neigh += self.level[neigh]
-            # w_point = self.level[point]
-            # w_neigh = self.level[neigh]
-            if abs(h_point - h_neigh) <= height:
-                drops.append(neigh)
+                h_neighbor += self.level[neighbor]
+            if abs(h_point - h_neighbor) <= height:
+                drops.append(neighbor)
         return drops
 
-    def collect(self, points, height):
+    def find(self, space, points, height):
         """Find drops that contain water around given points"""
         already = np.zeros_like(self.level)
         water_region = set()
         for point in points:
-            drops = self.allowed_height(point, height)
+            drops = self.allowed_height(space, point, height)
             for d in drops:
                 if not already[d]:
                     grp = util.groups(d, self.level)
@@ -90,3 +121,31 @@ class Water:
     def __repr__(self):
         class_name = type(self).__name__
         return f'{class_name}\n<{self.level!r}>'
+
+
+if __name__ == "__main__":
+    from environment import Environment
+    from util import plot_data
+    from sample_surfaces import data_inv_pyramid
+
+    image = data_inv_pyramid(100, 100)
+    water = Water(image.shape, evaporate=True)
+    water.add(100)
+    # water.add_values([(2, 0)], 4)
+    env = Environment(image)
+    env.water = water
+
+    iterations = 20
+    water_dt = []
+    energy_dt = []
+    for i in range(iterations):
+        water_dt.append(water.level.copy())
+        energy_dt.append(water.energy.copy())
+        # if i == 50:
+        #     water.add(100)
+        water.move(env)
+        if (water.energy < 0).any():
+            print(f"{water.energy.min()}")
+    print(water.INIT_ENERGY)
+    dt = np.array(water_dt)
+    plot_data(dt, "water")

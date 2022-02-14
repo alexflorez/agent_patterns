@@ -1,7 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage.draw import disk
-from skimage.util import img_as_ubyte
 
 MAX_HEIGHT = 200
 MIN_HEIGHT = 5
@@ -170,6 +168,8 @@ def data_chess(rows, cols):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
     xrows = 100
     ycols = 100
 
@@ -182,17 +182,17 @@ if __name__ == '__main__':
     dt_gaussian = data_gaussian(xrows, ycols)
     dt_inv_gauss = data_inv_gaussian(xrows, ycols)
     dt_flat = data_flat(xrows, ycols)
-    radius_d = 5
+    radius_d = 10
     dt_disco = data_disk(xrows, ycols, radius_d)
-    width_d = 2
+    width_d = 4
     dt_circle = data_circle(xrows, ycols, radius_d, width_d)
     dt_chess = data_chess(xrows, ycols)
 
-    imgs = [dt_slope, dt_half_v, dt_full_v, dt_full_vinv, dt_pyramid,  # chess
-            dt_inv_pyramid, dt_gaussian, dt_inv_gauss, dt_disco, dt_circle]
-    names = ['slope', 'half_v', 'full_v', 'full_vinv', 'pyramid',  # 'chess',
-             'inv_pyramid', 'gaussian', 'inv_gauss', 'disco', 'circle']
-    fig, axs = plt.subplots(2, 5, figsize=(10, 5))
+    imgs = [dt_slope, dt_full_v, dt_full_vinv, dt_half_v, dt_pyramid, dt_inv_pyramid]
+    # imgs = [dt_gaussian, dt_inv_gauss, dt_chess, dt_disco, dt_circle, dt_flat]
+    names = ['slope', 'full_v', 'full_vinv', 'half_v', 'pyramid', 'inv_pyramid']
+    # names = ['gaussian', 'inv_gauss', 'chess', 'disk', 'circle', 'flat']
+    fig, axs = plt.subplots(2, 3, figsize=(10, 5))
     for i, ax in enumerate(axs.flat):
         ax.xaxis.set_major_locator(plt.NullLocator())
         ax.yaxis.set_major_locator(plt.NullLocator())
