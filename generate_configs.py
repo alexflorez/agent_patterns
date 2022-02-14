@@ -6,6 +6,9 @@ from collections import namedtuple
 BASE_PATH = Path("__file__").resolve().parent
 CONFIG_BASE = BASE_PATH / "settings"
 
+if not CONFIG_BASE.exists():
+    Path.mkdir(CONFIG_BASE, parents=True)
+
 # Water parameters
 WaterInitialLevel = 1
 # WaterInitialEnergy = [10, 20, 30, 40, 50]
