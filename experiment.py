@@ -24,7 +24,7 @@ def process_agent(file, label, configuration, destiny):
     confWater = configuration["water"]
     ENERGY_WATER = confWater.getint("InitialEnergy")                    # 1
     confPlant = config["plant"]
-    ENERGY_PLANT = confPlant.getint("PlantInitialEnergy")               # 3
+    ENERGY_PLANT = confPlant.getint("InitialEnergy")                    # 3
     POINTS_HEIGHT = confPlant.getint("PointsHeight")                    # 4
     GROW_ENERGY = confPlant.getint("GrowingEnergy")                     # 5
     DROPS_TO_GROW = confPlant.getint("DropsToGrow")                     # 6
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     cpus = multiprocessing.cpu_count()
     with multiprocessing.Pool(processes=cpus) as pool:
         resp = pool.starmap(process_agent, parameters)
-    #
+
     # fl = ds.files[0]
     # lb = ds.labels[0]
     # process_agent(fl, lb, config, ds_result)
