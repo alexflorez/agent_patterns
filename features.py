@@ -1,7 +1,8 @@
-from pathlib import Path
-import numpy as np
-import multiprocessing
+import argparse
 import h5py
+import multiprocessing
+import numpy as np
+from pathlib import Path
 from sklearn import preprocessing
 
 
@@ -51,9 +52,14 @@ def extract_features(datafile):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config", help="Folder data agents")
+    args = parser.parse_args()
+    exp_dir = Path(args.config)
+
     ds_name = "brodatz"
-    dir_data = Path("results") / ds_name
-    files = [f for f in dir_data.iterdir()]
+    ds_result = Path("results") / ds_name / exp_dir
+    files = [f for f in ds_result.iterdir()]
 
     cpus = multiprocessing.cpu_count()
     with multiprocessing.Pool(processes=cpus) as pool:
@@ -61,7 +67,7 @@ if __name__ == '__main__':
 
     features_dt, labels = zip(*fts_lbs)
     features_dt = np.vstack(features_dt)
-    hdf5_filename = f"{ds_name}_features.hdf5"
+    hdf5_filename = f"{ds_name}_{exp_dir}.hdf5"
     with h5py.File(hdf5_filename, "w") as f:
         f.create_dataset("features", data=features_dt)
         f.create_dataset("labels", data=labels)
